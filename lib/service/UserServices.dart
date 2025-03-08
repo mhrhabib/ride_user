@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart';
@@ -34,7 +33,6 @@ class UserService extends BaseService {
     return ref!.doc(id).update(data as Map<String, Object?>);
   }
 
-
   Future<UserModel> getUser({String? email}) {
     return ref!.where("email", isEqualTo: email).limit(1).get().then((value) {
       if (value.docs.length == 1) {
@@ -64,7 +62,7 @@ class UserService extends BaseService {
   }
 
   Stream<UserModel> singleUser(String? id, {String? searchText}) {
-    log('id-----'+id.toString());
+    log('id-----' + id.toString());
     return ref!.where('uid', isEqualTo: id).limit(1).snapshots().map((event) {
       log(event.docs.first.data().toString());
       return UserModel.fromJson(event.docs.first.data() as Map<String, dynamic>);

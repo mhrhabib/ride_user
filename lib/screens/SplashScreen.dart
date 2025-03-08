@@ -5,7 +5,8 @@ import 'package:permission_handler/permission_handler.dart';
 import '../utils/Common.dart';
 import '../utils/Extensions/StringExtensions.dart';
 import '../main.dart';
-import '../../screens/WalkThroughtScreen.dart';
+import 'auth/sign_in_with_phone_screen.dart';
+import 'onboardScreens/WalkThroughtScreen.dart';
 import '../../utils/Colors.dart';
 import '../../utils/Constants.dart';
 import '../../utils/Extensions/app_common.dart';
@@ -28,8 +29,8 @@ class SplashScreenState extends State<SplashScreen> {
   }
 
   void init() async {
-    List<ConnectivityResult> b=await Connectivity().checkConnectivity();
-    if(b.contains(ConnectivityResult.none)){
+    List<ConnectivityResult> b = await Connectivity().checkConnectivity();
+    if (b.contains(ConnectivityResult.none)) {
       return toast(language.yourInternetIsNotWorking);
     }
     await Future.delayed(Duration(seconds: 1));
@@ -104,10 +105,10 @@ class SplashScreenState extends State<SplashScreen> {
     );
   }
 
-  void _checkNotifyPermission() async{
-    if(await Permission.notification.isGranted){
+  void _checkNotifyPermission() async {
+    if (await Permission.notification.isGranted) {
       init();
-    }else{
+    } else {
       await Permission.notification.request();
       init();
     }

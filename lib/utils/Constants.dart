@@ -6,15 +6,13 @@ import 'images.dart';
 const mAppName = 'UBAR';
 //endregion
 
-
 // region Google map key
- const GOOGLE_MAP_API_KEY = 'AIzaSyBMd5WzV4wYER6kkqQoB5yGHBov_NdSGn0';
+const GOOGLE_MAP_API_KEY = 'AIzaSyBMd5WzV4wYER6kkqQoB5yGHBov_NdSGn0';
 //endregion
 
 //region DomainUrl
-const DOMAIN_URL = 'https://tube.sohabagcluster.com'; // Don't add slash at the end of the url
+const DOMAIN_URL = 'https://ubar.marcuricit.org'; // Don't add slash at the end of the url
 //endregion
-
 
 //region OneSignal Keys
 //You have to generate 2 onesignal account one for rider and one for driver
@@ -212,7 +210,7 @@ const RIDE_CHAT = "ride_chat";
 const USER_COLLECTION = "users";
 const CONTACT_COLLECTION = "contact";
 const CHAT_DATA_IMAGES = "chatImages";
-const RIDE_COLLECTION='rides';
+const RIDE_COLLECTION = 'rides';
 //endregion
 
 const IS_ENTER_KEY = "IS_ENTER_KEY";
@@ -256,8 +254,8 @@ extension MessageExtension on MessageType {
         return 'VIDEO';
       case MessageType.AUDIO:
         return 'AUDIO';
-      default:
-        return null;
+      // default:
+      //   return null;
     }
   }
 }

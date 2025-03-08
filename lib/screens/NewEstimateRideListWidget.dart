@@ -1,3 +1,5 @@
+// ignore_for_file: must_be_immutable
+
 import 'dart:async';
 
 // import 'dart:convert';
@@ -120,7 +122,7 @@ class NewEstimateRideListWidgetState extends State<NewEstimateRideListWidget> wi
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance!.addObserver(this);
+    WidgetsBinding.instance.addObserver(this);
     init();
   }
 
@@ -505,7 +507,7 @@ class NewEstimateRideListWidgetState extends State<NewEstimateRideListWidget> wi
     Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high).then((value) {
       polylineSource = LatLng(value.latitude, value.longitude);
     });
-    WidgetsBinding.instance!.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(this);
     if (timer != null) timer!.cancel();
     super.dispose();
   }

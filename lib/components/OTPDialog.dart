@@ -233,56 +233,48 @@ class OTPDialogState extends State<OTPDialog> {
                 scrollDirection: Axis.horizontal,
                 child: Directionality(
                   textDirection: TextDirection.ltr,
-                    //             child: Pinput(
-                    //               length: 6,
-                    //               controller: otpController,
-                    // onChanged: (s) {
-                    //     verId = otpController.text;
-                    //   },
-                    //   onCompleted: (pin) {
-                    //     verId = pin;
-                    //     submit();
-                    //   },
-                    //             ),
-                  child:Pinput(
+                  //             child: Pinput(
+                  //               length: 6,
+                  //               controller: otpController,
+                  // onChanged: (s) {
+                  //     verId = otpController.text;
+                  //   },
+                  //   onCompleted: (pin) {
+                  //     verId = pin;
+                  //     submit();
+                  //   },
+                  //             ),
+                  child: Pinput(
                     keyboardType: TextInputType.number,
                     readOnly: false,
                     autofocus: true,
                     length: 6,
-                    onTap: () {
-                    },
+                    onTap: () {},
                     // onClipboardFound: (value) {
                     // otpController.text=value;
                     // },
-                    onLongPress: () {
-
-                    },
-                    cursor: Text("|",style: TextStyle(fontSize: 22,fontWeight: FontWeight.w500),),
-                    focusedPinTheme:  PinTheme(
+                    onLongPress: () {},
+                    cursor: Text(
+                      "|",
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+                    ),
+                    focusedPinTheme: PinTheme(
                       width: 40,
                       height: 44,
                       textStyle: TextStyle(
                         fontSize: 18,
                       ),
-                      decoration:  BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                          border: Border.all(color:primaryColor)
-                      ),
+                      decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.all(Radius.circular(8)), border: Border.all(color: primaryColor)),
                     ),
                     toolbarEnabled: true,
                     useNativeKeyboard: true,
-                    defaultPinTheme:PinTheme(
+                    defaultPinTheme: PinTheme(
                       width: 40,
                       height: 44,
                       textStyle: TextStyle(
                         fontSize: 18,
                       ),
-                      decoration:  BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                          border: Border.all(color:dividerColor)
-                      ),
+                      decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.all(Radius.circular(8)), border: Border.all(color: dividerColor)),
                     ),
                     isCursorAnimationEnabled: true,
                     showCursor: true,
@@ -292,7 +284,7 @@ class OTPDialogState extends State<OTPDialog> {
                     autofillHints: [],
                     controller: otpController,
                     onCompleted: (val) {
-                      otpController.text=val;
+                      otpController.text = val;
                       verId = val;
                       submit();
                     },

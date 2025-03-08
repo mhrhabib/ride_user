@@ -7,12 +7,7 @@ import '../../../main.dart';
 import '../Constants.dart';
 
 TextStyle boldTextStyle({int? size, Color? color, FontWeight? weight, TextDecoration? textDecoration, double? letterSpacing}) {
-  return TextStyle(
-      fontSize: size != null ? size.toDouble() : textBoldSizeGlobal,
-      color: color ?? textPrimaryColorGlobal,
-      fontWeight: weight ?? FontWeight.bold,
-      decoration: textDecoration ?? TextDecoration.none,
-      letterSpacing: letterSpacing ?? 0);
+  return TextStyle(fontSize: size != null ? size.toDouble() : textBoldSizeGlobal, color: color ?? textPrimaryColorGlobal, fontWeight: weight ?? FontWeight.bold, decoration: textDecoration ?? TextDecoration.none, letterSpacing: letterSpacing ?? 0);
 }
 
 // Primary Text Style

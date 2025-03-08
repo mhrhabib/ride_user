@@ -9,12 +9,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_booking/utils/firebase_option.dart';
 import '../network/RestApis.dart';
 import '../utils/Extensions/StringExtensions.dart';
 import '/model/FileModel.dart';
+import 'package:get/get.dart';
 import '/model/LanguageDataModel.dart';
 import 'AppTheme.dart';
 import 'language/AppLocalizations.dart';
@@ -65,6 +67,7 @@ Future<void> initialize({
   localeLanguageList = aLocaleLanguageList ?? [];
   selectedLanguageDataModel = getSelectedLanguageModel(defaultLanguage: defaultLanguage);
 }
+
 LatLng? sourceLocation;
 late BitmapDescriptor riderIcon;
 String sourceLocationTitle = '';
@@ -73,6 +76,7 @@ void main() async {
   sharedPref = await SharedPreferences.getInstance();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initialize(aLocaleLanguageList: languageList());
+  await GetStorage.init();
   appStore.setLanguage(defaultLanguage);
   FlutterError.onError = (errorDetails) {
     FirebaseCrashlytics.instance.recordError(errorDetails.exception, errorDetails.stack, fatal: true);
@@ -84,7 +88,7 @@ void main() async {
   ]);
   // Async exceptions
   PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordFlutterError(FlutterErrorDetails(exception: error,stack: stack));
+    FirebaseCrashlytics.instance.recordFlutterError(FlutterErrorDetails(exception: error, stack: stack));
     FirebaseCrashlytics.instance.recordError(error, stack);
     return true;
   };
@@ -151,7 +155,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return Observer(builder: (context) {
-      return MaterialApp(
+      return GetMaterialApp(
         navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         title: mAppName,

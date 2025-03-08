@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:taxi_booking/utils/storage.dart';
 import '../utils/Extensions/context_extension.dart';
 import '../model/LoginResponse.dart';
 import '../utils/Extensions/StringExtensions.dart';
@@ -63,7 +64,7 @@ class SignInScreenState extends State<SignInScreen> {
     if (mIsRemember) {
       emailController.text = sharedPref.getString(USER_EMAIL).validate();
       passController.text = sharedPref.getString(USER_PASSWORD).validate();
-      setState((){});
+      setState(() {});
     }
   }
 
@@ -75,14 +76,17 @@ class SignInScreenState extends State<SignInScreen> {
         appStore.setLoading(true);
 
         Map req = {
-          'email': emailController.text.trim(),
+          'contact_number': emailController.text.trim(),
           'password': passController.text.trim(),
           "player_id": sharedPref.getString(PLAYER_ID).validate(),
           'user_type': RIDER,
+          'fcm_token': '',
         };
         log(req);
         await logInApi(req).then((value) {
           userModel = value.data!;
+          storage.write('token', userModel.apiToken);
+          storage.write('userId', userModel.id);
           auth.signInWithEmailAndPassword(email: emailController.text, password: passController.text).then((value) async {
             sharedPref.setString(UID, value.user!.uid);
             updateProfileUid();
@@ -96,7 +100,7 @@ class SignInScreenState extends State<SignInScreen> {
             launchScreen(context, DashBoardScreen(), isNewTask: true, pageRouteAnimation: PageRouteAnimation.Slide);
           }).catchError((e) {
             appStore.setLoading(false);
-            if (e.toString().contains('user-not-found')||e.toString().contains('invalid-credential')) {
+            if (e.toString().contains('user-not-found') || e.toString().contains('invalid-credential')) {
               authService.signUpWithEmailPassword(
                 context,
                 mobileNumber: userModel.contactNumber,
@@ -189,10 +193,10 @@ class SignInScreenState extends State<SignInScreen> {
                     controller: emailController,
                     nextFocus: passFocus,
                     autoFocus: false,
-                    textFieldType: TextFieldType.EMAIL,
-                    keyboardType: TextInputType.emailAddress,
+                    textFieldType: TextFieldType.OTHER,
+                    keyboardType: TextInputType.text,
                     errorThisFieldRequired: language.thisFieldRequired,
-                    decoration: inputDecoration(context, label: language.email),
+                    decoration: inputDecoration(context, label: language.phoneNumber),
                   ),
                   SizedBox(height: 16),
                   AppTextField(

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:gap/gap.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/ImageSourceDialog.dart';
 import '../network/RestApis.dart';
@@ -43,6 +44,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   FocusNode userNameFocus = FocusNode();
   FocusNode firstnameFocus = FocusNode();
   FocusNode lastnameFocus = FocusNode();
+  FocusNode emergencyNumberFocus = FocusNode();
   FocusNode contactFocus = FocusNode();
   FocusNode addressFocus = FocusNode();
 
@@ -61,8 +63,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       lastNameController.text = value.data!.lastName.validate();
       addressController.text = value.data!.address.validate();
       contactNumberController.text = value.data!.contactNumber.validate();
-      if(value.data!.country_code!=null){
-        contactNumberController.text=value.data!.country_code.validate()+value.data!.contactNumber.validate();
+      if (value.data!.country_code != null) {
+        contactNumberController.text = value.data!.country_code.validate() + value.data!.contactNumber.validate();
       }
       appStore.setUserEmail(value.data!.email.validate());
       appStore.setUserName(value.data!.username.validate());
@@ -246,7 +248,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                           controller: contactNumberController,
                           textFieldType: TextFieldType.PHONE,
                           focus: contactFocus,
-                          nextFocus: addressFocus,
+                          nextFocus: emergencyNumberFocus,
                           decoration: inputDecoration(
                             context,
                             label: language.phoneNumber,
@@ -295,7 +297,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                           controller: contactNumberController,
                           textFieldType: TextFieldType.PHONE,
                           focus: contactFocus,
-                          nextFocus: addressFocus,
+                          nextFocus: emergencyNumberFocus,
                           isValidationRequired: true,
                           readOnly: sharedPref.getString(LOGIN_TYPE) == LoginTypeGoogle ? false : true,
                           decoration: inputDecoration(
@@ -310,13 +312,153 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                   SizedBox(height: 16),
                   AppTextField(
-                    controller: addressController,
-                    focus: addressFocus,
-                    textFieldType: TextFieldType.ADDRESS,
-                    textInputAction: TextInputAction.newline,
-                    maxLength: 300,
-                    decoration: inputDecoration(context, label: language.address,counterText: ''),
+                    // controller: lastNameController,
+                    textFieldType: TextFieldType.PHONE,
+                    focus: emergencyNumberFocus,
+                    nextFocus: addressFocus,
+                    decoration: inputDecoration(context, label: language.emergencyContact),
+                    errorThisFieldRequired: language.thisFieldRequired,
                   ),
+                  Gap(8),
+                  Text('For transport booking must update KYC'),
+                  Gap(8),
+
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Column(
+                            children: [
+                              Stack(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    height: 80,
+                                    width: 100,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 1,
+                                    child: Align(
+                                      alignment: Alignment.topRight,
+                                      child: Container(
+                                        margin: EdgeInsets.only(top: 0, right: 0),
+                                        height: 24,
+                                        width: 24,
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: primaryColor),
+                                        child: InkWell(
+                                            onTap: () {
+                                              showDialog(
+                                                context: context,
+                                                builder: (_) {
+                                                  return ImageSourceDialog(
+                                                    onCamera: () async {
+                                                      Navigator.pop(context);
+                                                      imageProfile = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
+                                                      setState(() {});
+                                                    },
+                                                    onGallery: () async {
+                                                      Navigator.pop(context);
+                                                      imageProfile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+                                                      setState(() {});
+                                                    },
+                                                  );
+                                                },
+                                              );
+                                            },
+                                            child: Icon(Icons.edit, color: Colors.white, size: 14)),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Text('NID Front'),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Column(
+                            children: [
+                              Stack(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    height: 80,
+                                    width: 100,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 0,
+                                    right: 1,
+                                    child: Container(
+                                      margin: EdgeInsets.only(top: 0, right: 0),
+                                      height: 24,
+                                      width: 24,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: primaryColor),
+                                      child: InkWell(
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (_) {
+                                                return ImageSourceDialog(
+                                                  onCamera: () async {
+                                                    Navigator.pop(context);
+                                                    imageProfile = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
+                                                    setState(() {});
+                                                  },
+                                                  onGallery: () async {
+                                                    Navigator.pop(context);
+                                                    imageProfile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+                                                    setState(() {});
+                                                  },
+                                                );
+                                              },
+                                            );
+                                          },
+                                          child: Icon(Icons.edit, color: Colors.white, size: 14)),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Text('NID Back'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // AppTextField(
+                  //   controller: addressController,
+                  //   focus: addressFocus,
+                  //   textFieldType: TextFieldType.ADDRESS,
+                  //   textInputAction: TextInputAction.newline,
+                  //   maxLength: 300,
+                  //   decoration: inputDecoration(context, label: language.address, counterText: ''),
+                  // ),
                 ],
               ),
             ),

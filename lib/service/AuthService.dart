@@ -1,11 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:taxi_booking/screens/auth/otp_screen.dart';
 import '../screens/EditProfileScreen.dart';
 import 'package:the_apple_sign_in/the_apple_sign_in.dart';
 import '../utils/Extensions/StringExtensions.dart';
-
-import '../components/OTPDialog.dart';
 import '../main.dart';
 import '../network/RestApis.dart';
 import '../screens/DashBoardScreen.dart';
@@ -20,6 +19,7 @@ Future<void> loginWithOTP(BuildContext context, String phoneNumber) async {
   return await _auth.verifyPhoneNumber(
     phoneNumber: phoneNumber,
     verificationCompleted: (PhoneAuthCredential credential) async {
+      await _auth.signInWithCredential(credential);
       appStore.setLoading(false);
     },
     verificationFailed: (FirebaseAuthException e) {
@@ -34,13 +34,21 @@ Future<void> loginWithOTP(BuildContext context, String phoneNumber) async {
       }
     },
     codeSent: (String verificationId, int? resendToken) async {
-      Navigator.pop(context);
+      // Navigator.pop(context);
       appStore.setLoading(false);
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(content: OTPDialog(verificationId: verificationId, isCodeSent: true, phoneNumber: phoneNumber)),
-        barrierDismissible: false,
-      );
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (ctx) => OtpScreen(
+              verificationId: verificationId,
+              phoneNumber: phoneNumber,
+            ),
+          ),
+          (route) => false);
+      // await showDialog(
+      //   context: context,
+      //   builder: (context) => AlertDialog(content: OTPDialog(verificationId: verificationId, isCodeSent: true, phoneNumber: phoneNumber)),
+      //   barrierDismissible: false,
+      // );
     },
     codeAutoRetrievalTimeout: (String verificationId) {
       appStore.setLoading(false);
@@ -49,18 +57,17 @@ Future<void> loginWithOTP(BuildContext context, String phoneNumber) async {
 }
 
 class GoogleAuthServices {
-  final GoogleSignIn googleSignIn = GoogleSignIn(
-    scopes: [
-      'email',
-    ]
+  final GoogleSignIn googleSignIn = GoogleSignIn(scopes: [
+    'email',
+  ]
       // clientId: "522987428134-h3uhk1qfvlh2a1gr57kr2b11utis32nd.apps.googleusercontent.com",
-  // hostedDomain: "taxi-booking-810bf.firebaseapp.com",
-  //   forceCodeForRefreshToken: true
-  );
+      // hostedDomain: "taxi-booking-810bf.firebaseapp.com",
+      //   forceCodeForRefreshToken: true
+      );
   AuthServices authService = AuthServices();
 
   Future<void> signInWithGoogle(BuildContext context) async {
-    try{
+    try {
       GoogleSignInAccount? googleSignInAccount = await googleSignIn.signIn();
       if (googleSignInAccount != null) {
         //Authentication
@@ -85,7 +92,7 @@ class GoogleAuthServices {
       } else {
         throw errorSomethingWentWrong;
       }
-    }catch(e){
+    } catch (e) {
       throw e;
     }
   }

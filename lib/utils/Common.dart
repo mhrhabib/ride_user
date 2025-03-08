@@ -10,7 +10,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:html/parser.dart';
 import 'package:intl/intl.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import '../model/LoginResponse.dart';
 import '../network/RestApis.dart';
 import '../screens/ChatScreen.dart';
@@ -36,7 +35,12 @@ Widget dotIndicator(list, i) {
             height: 8,
             width: 8,
             margin: EdgeInsets.all(4),
-            decoration: BoxDecoration(color: i == ind ? Colors.white : Colors.grey.withOpacity(0.5), borderRadius: BorderRadius.circular(defaultRadius)),
+            decoration: BoxDecoration(
+              color: i == ind ? Colors.white : Colors.grey.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(
+                defaultRadius,
+              ),
+            ),
           );
         },
       ),
@@ -44,7 +48,7 @@ Widget dotIndicator(list, i) {
   );
 }
 
-InputDecoration inputDecoration(BuildContext context, {String? label, Widget? prefixIcon, Widget? suffixIcon,bool? alignWithHint=true,String? counterText}) {
+InputDecoration inputDecoration(BuildContext context, {String? label, Widget? prefixIcon, Widget? suffixIcon, bool? alignWithHint = true, String? counterText}) {
   return InputDecoration(
     focusColor: primaryColor,
     prefixIcon: prefixIcon,
@@ -65,11 +69,16 @@ InputDecoration inputDecoration(BuildContext context, {String? label, Widget? pr
 }
 
 InputDecoration searchInputDecoration({String? hint}) {
-  return InputDecoration(contentPadding: EdgeInsets.symmetric(vertical: 8),
+  return InputDecoration(
+      contentPadding: EdgeInsets.symmetric(vertical: 8),
       enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: primaryColor)),
       focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: primaryColor)),
       border: UnderlineInputBorder(borderSide: BorderSide(color: primaryColor)),
-      focusColor: primaryColor, isDense: true, hintStyle: primaryTextStyle(), labelStyle: primaryTextStyle(), hintText: hint);
+      focusColor: primaryColor,
+      isDense: true,
+      hintStyle: primaryTextStyle(),
+      labelStyle: primaryTextStyle(),
+      hintText: hint);
 }
 
 extension BooleanExtensions on bool? {
@@ -80,7 +89,6 @@ extension BooleanExtensions on bool? {
 EdgeInsets dynamicAppButtonPadding(BuildContext context) {
   return EdgeInsets.symmetric(vertical: 14, horizontal: 16);
 }
-
 
 Widget inkWellWidget({Function()? onTap, required Widget child}) {
   return InkWell(onTap: onTap, child: child, highlightColor: Colors.transparent, hoverColor: Colors.transparent, splashColor: Colors.transparent);
@@ -229,19 +237,19 @@ Widget totalCount({String? title, num? amount, bool? isTotal = false, double? sp
   //     Text(printAmount(amount!.toStringAsFixed(digitAfterDecimal)), style: isTotal == true ? boldTextStyle(color: Colors.green, size: 18) : boldTextStyle(size: 14)),
   //   ],
   // );
-  if(amount!>0){
+  if (amount! > 0) {
     return Padding(
-      padding: EdgeInsets.only(bottom: space??0),
+      padding: EdgeInsets.only(bottom: space ?? 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: Text(title!, style: isTotal == true ? boldTextStyle(color: Colors.green, size: 18) : secondaryTextStyle())),
-          Text(printAmount(amount!.toStringAsFixed(digitAfterDecimal)), style: isTotal == true ? boldTextStyle(color: Colors.green, size: 18) : boldTextStyle(size: 14)),
+          Text(printAmount(amount.toStringAsFixed(digitAfterDecimal)), style: isTotal == true ? boldTextStyle(color: Colors.green, size: 18) : boldTextStyle(size: 14)),
         ],
       ),
     );
-  }else{
+  } else {
     return SizedBox();
   }
 }
@@ -376,7 +384,7 @@ String getMessageFromErrorCode(FirebaseException error) {
     case "operation-not-allowed":
       return "Too many requests to log into this account.";
     case "ERROR_OPERATION_NOT_ALLOWED":
-    case "operation-not-allowed":
+      // case "operation-not-allowed":
       return "Server error, please try again later.";
     case "ERROR_INVALID_EMAIL":
     case "invalid-email":
@@ -415,9 +423,15 @@ oneSignalSettings() async {
     if (notId != null) {
       if (notId.toString().contains('CHAT')) {
         LoginResponse user = await getUserDetail(userId: int.parse(notId.toString().replaceAll("CHAT_", "")));
-        launchScreen(getContext, ChatScreen(userData: user.data,ride_id: -1,),isNewTask: true);
+        launchScreen(
+            getContext,
+            ChatScreen(
+              userData: user.data,
+              ride_id: -1,
+            ),
+            isNewTask: true);
       } else if (notType == SUCCESS) {
-        launchScreen(getContext, RideDetailScreen(orderId: notId),isNewTask: true);
+        launchScreen(getContext, RideDetailScreen(orderId: notId), isNewTask: true);
       }
     }
   });
@@ -437,12 +451,12 @@ Future<void> saveOneSignalPlayerId() async {
 }
 
 Future<void> exportedLog({required String logMessage, required String file_name}) async {
-  if(testLogExport==false) return;
+  if (testLogExport == false) return;
   final downloadsDirectory = Directory('/storage/emulated/0/Download');
   if (!await downloadsDirectory.exists()) {
     await downloadsDirectory.create(recursive: true);
   }
-  final filePath = '${downloadsDirectory.path}/${file_name+"${DateTime.now().hour}_${DateTime.now().minute}"}.txt';
+  final filePath = '${downloadsDirectory.path}/${file_name + "${DateTime.now().hour}_${DateTime.now().minute}"}.txt';
   final file = File(filePath);
   try {
     await file.writeAsString(logMessage, mode: FileMode.append);
@@ -457,7 +471,7 @@ Future<void> exportedLogTest({required String logMessage, required String file_n
   if (!await downloadsDirectory.exists()) {
     await downloadsDirectory.create(recursive: true);
   }
-  final filePath = '${downloadsDirectory.path}/${file_name+"${DateTime.now().hour}_${DateTime.now().minute}"}.txt';
+  final filePath = '${downloadsDirectory.path}/${file_name + "${DateTime.now().hour}_${DateTime.now().minute}"}.txt';
   final file = File(filePath);
   try {
     await file.writeAsString(logMessage, mode: FileMode.append);
@@ -519,8 +533,8 @@ Future<void> getAppSettingsData() async {
     if (value.privacyPolicyModel!.value != null) appStore.privacyPolicy = value.privacyPolicyModel!.value!;
     if (value.termsCondition!.value != null) appStore.termsCondition = value.termsCondition!.value!;
     if (value.settingModel!.helpSupportUrl != null) appStore.mHelpAndSupport = value.settingModel!.helpSupportUrl!;
-  }).catchError((error,stack) {
-    FirebaseCrashlytics.instance.recordError("setting_update_issue::"+error.toString(), stack, fatal: true);
+  }).catchError((error, stack) {
+    FirebaseCrashlytics.instance.recordError("setting_update_issue::" + error.toString(), stack, fatal: true);
     log('${error.toString()}');
   });
 }

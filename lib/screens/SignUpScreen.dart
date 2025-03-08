@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:gap/gap.dart';
+import 'package:image_picker/image_picker.dart';
+import '../components/ImageSourceDialog.dart';
 import '../utils/Extensions/context_extension.dart';
 import '../utils/Extensions/StringExtensions.dart';
 
@@ -36,6 +41,9 @@ class SignUpScreenState extends State<SignUpScreen> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   AuthServices authService = AuthServices();
 
+  XFile? nidFront;
+  XFile? nidBack;
+
   TextEditingController firstController = TextEditingController();
   TextEditingController lastNameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
@@ -60,6 +68,10 @@ class SignUpScreenState extends State<SignUpScreen> {
 
   String countryCode = defaultCountryCode;
 
+  List<String> userDetails = [];
+  String nidFrontImage = '';
+  String nidBackImage = '';
+
   @override
   void initState() {
     super.initState();
@@ -67,8 +79,30 @@ class SignUpScreenState extends State<SignUpScreen> {
   }
 
   void init() async {
-    userNameController.text="a";
+    userNameController.text = "a";
     await saveOneSignalPlayerId().then((value) {});
+  }
+
+  String _selectedDate = ''; // Variable to store the selected date as a string
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(), // Initial date (current date)
+      firstDate: DateTime(1900), // Earliest selectable date
+      lastDate: DateTime.now(), // Latest selectable date (current date)
+    );
+
+    if (picked != null) {
+      // Format the selected date as a string (e.g., "yyyy-MM-dd")
+      String formattedDate = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      setState(() {
+        _selectedDate = formattedDate; // Update the selected date
+      });
+
+      // You can now submit `_selectedDate` to your API
+      print("Selected Date: $_selectedDate");
+    }
   }
 
   @override
@@ -88,11 +122,16 @@ class SignUpScreenState extends State<SignUpScreen> {
           'username': widget.socialLogin ? widget.userName : userNameController.text.trim(),
           'email': emailController.text.trim(),
           "user_type": "rider",
+          'dob': _selectedDate == '' ? '' : _selectedDate,
           "contact_number": widget.socialLogin ? '${widget.userName}' : '${phoneController.text.trim()}',
           "emergency_contact_number": widget.socialLogin ? '${widget.userName}' : '${emergencyPhoneController.text.trim()}',
           "country_code": widget.socialLogin ? '${widget.countryCode}' : '$countryCode',
           'password': widget.socialLogin ? widget.userName : passController.text.trim(),
+          'password_confirmation': widget.socialLogin ? widget.userName : confirmPassController.text.trim(),
           "player_id": sharedPref.getString(PLAYER_ID).validate(),
+          'nid_front': nidFrontImage,
+          'nid_back': nidBackImage,
+          'user_detail': userDetails.isNotEmpty ? userDetails : [],
           if (widget.socialLogin) 'login_type': 'mobile',
         };
 
@@ -241,7 +280,7 @@ class SignUpScreenState extends State<SignUpScreen> {
                                   countryCode = c.dialCode!;
                                 },
                               ),
-                              VerticalDivider(color: Colors.grey.withOpacity(0.5)),
+                              VerticalDivider(color: Colors.grey.withValues(alpha: 0.5)),
                             ],
                           ),
                         ),
@@ -293,7 +332,7 @@ class SignUpScreenState extends State<SignUpScreen> {
                                   countryCode = c.dialCode!;
                                 },
                               ),
-                              VerticalDivider(color: Colors.grey.withOpacity(0.5)),
+                              VerticalDivider(color: Colors.grey.withValues(alpha: 0.5)),
                             ],
                           ),
                         ),
@@ -308,7 +347,7 @@ class SignUpScreenState extends State<SignUpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(top: 12.0,left: 12),
+                        padding: const EdgeInsets.only(top: 12.0, left: 12),
                         child: Text("Gender", style: TextStyle(fontSize: 16)),
                       ),
                       Row(
@@ -356,6 +395,23 @@ class SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ],
                   ),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _selectedDate.isEmpty ? 'Select DOB' : 'Selected Date: $_selectedDate',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        SizedBox(width: 20),
+                        OutlinedButton.icon(
+                          onPressed: () => _selectDate(context), // Open the date picker
+                          label: Text('Select'),
+                          icon: Icon(Icons.calendar_month_outlined),
+                        ),
+                      ],
+                    ),
+                  ),
                   if (widget.socialLogin != true) SizedBox(height: 20),
                   if (widget.socialLogin != true)
                     Row(
@@ -396,6 +452,216 @@ class SignUpScreenState extends State<SignUpScreen> {
                           ),
                       ],
                     ),
+                  Gap(8),
+                  Text('NB: For transport booking you must update KYC otherwise its optional'),
+                  Gap(8),
+
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        // NID Front
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Column(
+                            children: [
+                              Stack(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    height: 80,
+                                    width: 120,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: nidFront == null
+                                        ? SizedBox.shrink()
+                                        : Image.file(
+                                            File(nidFront!.path),
+                                            fit: BoxFit.cover,
+                                          ),
+                                  ),
+                                  // Edit Button
+                                  Positioned(
+                                    top: 0,
+                                    right: 1,
+                                    child: Align(
+                                      alignment: Alignment.topRight,
+                                      child: Container(
+                                        margin: EdgeInsets.only(top: 0, right: 0),
+                                        height: 24,
+                                        width: 24,
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: primaryColor),
+                                        child: InkWell(
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (_) {
+                                                return ImageSourceDialog(
+                                                  onCamera: () async {
+                                                    Navigator.pop(context);
+                                                    nidFront = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
+                                                    setState(() {});
+                                                    if (nidFront != null) {
+                                                      nidFrontImage = nidFront!.path;
+                                                    }
+                                                  },
+                                                  onGallery: () async {
+                                                    Navigator.pop(context);
+                                                    nidFront = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+                                                    setState(() {});
+                                                    if (nidFront != null) {
+                                                      nidFrontImage = (nidFront!.path);
+                                                    }
+                                                  },
+                                                );
+                                              },
+                                            );
+                                          },
+                                          child: Icon(Icons.edit, color: Colors.white, size: 14),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Remove Button
+                                  if (nidFront != null)
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 1,
+                                      child: Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: Container(
+                                          margin: EdgeInsets.only(bottom: 0, right: 0),
+                                          height: 24,
+                                          width: 24,
+                                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: Colors.red),
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                nidFrontImage = '';
+                                                nidFront = null;
+                                              });
+                                            },
+                                            child: Icon(Icons.delete, color: Colors.white, size: 14),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              Text('NID Front'),
+                            ],
+                          ),
+                        ),
+                        // NID Back
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Column(
+                            children: [
+                              Stack(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    height: 80,
+                                    width: 120,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey.shade300),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: nidBack == null
+                                        ? SizedBox.shrink()
+                                        : Image.file(
+                                            File(nidBack!.path),
+                                            fit: BoxFit.cover,
+                                          ),
+                                  ),
+                                  // Edit Button
+                                  Positioned(
+                                    top: 0,
+                                    right: 1,
+                                    child: Container(
+                                      margin: EdgeInsets.only(top: 0, right: 0),
+                                      height: 24,
+                                      width: 24,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: primaryColor),
+                                      child: InkWell(
+                                        onTap: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) {
+                                              return ImageSourceDialog(
+                                                onCamera: () async {
+                                                  Navigator.pop(context);
+                                                  nidBack = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
+                                                  setState(() {});
+                                                  if (nidBack != null) {
+                                                    nidBackImage = (nidBack!.path);
+                                                  }
+                                                },
+                                                onGallery: () async {
+                                                  Navigator.pop(context);
+                                                  nidBack = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+                                                  setState(() {});
+                                                  if (nidBack != null) {
+                                                    nidBackImage = (nidBack!.path);
+                                                  }
+                                                },
+                                              );
+                                            },
+                                          );
+                                        },
+                                        child: Icon(Icons.edit, color: Colors.white, size: 14),
+                                      ),
+                                    ),
+                                  ),
+                                  // Remove Button
+                                  if (nidBack != null)
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 1,
+                                      child: Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: Container(
+                                          margin: EdgeInsets.only(bottom: 0, right: 0),
+                                          height: 24,
+                                          width: 24,
+                                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: Colors.red),
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                nidBackImage = '';
+                                                nidBack = null;
+                                              });
+                                            },
+                                            child: Icon(Icons.delete, color: Colors.white, size: 14),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              Text('NID Back'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   SizedBox(height: 16),
                   Row(
                     children: [

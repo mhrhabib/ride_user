@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:taxi_booking/screens/favLocations/screens/fav_location_screen.dart';
 import '../utils/Extensions/StringExtensions.dart';
 import '../main.dart';
 import '../network/RestApis.dart';
@@ -49,8 +50,7 @@ class _DrawerComponentState extends State<DrawerComponent> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(sharedPref.getString(FIRST_NAME).validate().capitalizeFirstLetter() + " " + sharedPref.getString(LAST_NAME).validate().capitalizeFirstLetter(),
-                                  style: boldTextStyle()),
+                              Text(sharedPref.getString(FIRST_NAME).validate().capitalizeFirstLetter() + " " + sharedPref.getString(LAST_NAME).validate().capitalizeFirstLetter(), style: boldTextStyle()),
                               SizedBox(height: 4),
                               Text(appStore.userEmail, style: secondaryTextStyle()),
                             ],
@@ -101,6 +101,13 @@ class _DrawerComponentState extends State<DrawerComponent> {
                       launchScreen(context, EmergencyContactScreen(), pageRouteAnimation: PageRouteAnimation.Slide);
                     }),
                 DrawerWidget(
+                    title: 'Favorite locations',
+                    iconData: ic_history_img2,
+                    onTap: () {
+                      Navigator.pop(context);
+                      launchScreen(context, FavLocationScreen(), pageRouteAnimation: PageRouteAnimation.Slide);
+                    }),
+                DrawerWidget(
                     title: language.settings,
                     iconData: ic_setting,
                     onTap: () {
@@ -111,12 +118,8 @@ class _DrawerComponentState extends State<DrawerComponent> {
                     title: language.logOut,
                     iconData: ic_logout,
                     onTap: () async {
-                      await showConfirmDialogCustom(context,
-                          primaryColor: primaryColor,
-                          dialogType: DialogType.CONFIRMATION,
-                          title: language.areYouSureYouWantToLogoutThisApp,
-                          positiveText: language.yes,
-                          negativeText: language.no, onAccept: (v) async {
+                      await showConfirmDialogCustom(context, primaryColor: primaryColor, dialogType: DialogType.CONFIRMATION, title: language.areYouSureYouWantToLogoutThisApp, positiveText: language.yes, negativeText: language.no,
+                          onAccept: (v) async {
                         await appStore.setLoggedIn(true);
                         await Future.delayed(Duration(milliseconds: 500));
                         await logout();

@@ -118,6 +118,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_sslcommerz: ^2.3.6
+  gap: ^3.0.1
+  dio: ^5.8.0+1
+  get_storage: ^2.1.1
+  get: ^4.7.2
 
 dev_dependencies:
   flutter_test:

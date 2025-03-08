@@ -7,9 +7,13 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_place_picker_mb/google_maps_place_picker.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:taxi_booking/screens/favLocations/controllers/locations_controller.dart';
+import 'package:taxi_booking/screens/favLocations/models/locations_model.dart';
+import 'package:taxi_booking/utils/storage.dart';
 
 import '../components/SearchLocationComponent.dart';
 import '../components/drawer_component.dart';
@@ -39,16 +43,17 @@ import 'NewEstimateRideListWidget.dart';
 import 'NotificationScreen.dart';
 
 class DashBoardScreen extends StatefulWidget {
+  final String? cancelReason;
+  DashBoardScreen({this.cancelReason, super.key});
   @override
   DashBoardScreenState createState() => DashBoardScreenState();
-  String? cancelReason;
-  DashBoardScreen({this.cancelReason});
 }
 
 class DashBoardScreenState extends State<DashBoardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // LatLng? sourceLocation;
+  final LocationsController locationsController = Get.put(LocationsController());
 
   List<TexIModel> list = getBookList();
   List<Marker> markers = [];
@@ -112,8 +117,7 @@ class DashBoardScreenState extends State<DashBoardScreen> {
     });
 
     sourceFocus.addListener(() {
-      sourceLocationController.selection =
-          TextSelection.collapsed(offset: sourceLocationController.text.length);
+      sourceLocationController.selection = TextSelection.collapsed(offset: sourceLocationController.text.length);
       if (sourceFocus.hasFocus) sourceLocationController.clear();
     });
 
@@ -121,12 +125,10 @@ class DashBoardScreenState extends State<DashBoardScreen> {
       if (desFocus.hasFocus) {
         if (mLocation.isNotEmpty) {
           sourceLocationController.text = mLocation;
-          sourceLocationController.selection = TextSelection.collapsed(
-              offset: sourceLocationController.text.length);
+          sourceLocationController.selection = TextSelection.collapsed(offset: sourceLocationController.text.length);
         } else {
           sourceLocationController.text = sourceLocationTitle;
-          sourceLocationController.selection = TextSelection.collapsed(
-              offset: sourceLocationController.text.length);
+          sourceLocationController.selection = TextSelection.collapsed(offset: sourceLocationController.text.length);
         }
       }
     });
@@ -135,59 +137,65 @@ class DashBoardScreenState extends State<DashBoardScreen> {
   void init() async {
     getCurrentUserLocation();
     initSearch();
-    riderIcon = await BitmapDescriptor.fromAssetImage(
-        ImageConfiguration(devicePixelRatio: 2.5), SourceIcon);
-    driverIcon = await BitmapDescriptor.fromAssetImage(
-        ImageConfiguration(devicePixelRatio: 2.5), MultipleDriver);
+    riderIcon = await BitmapDescriptor.asset(ImageConfiguration(devicePixelRatio: 2.5), SourceIcon, height: 30);
+    driverIcon = await BitmapDescriptor.asset(ImageConfiguration(devicePixelRatio: 2.5), MultipleDriver, height: 30);
     await getAppSettingsData();
 
     polylinePoints = PolylinePoints();
   }
 
   Future<void> getCurrentUserLocation() async {
-    if (permissionData != LocationPermission.denied) {
-      if (sourceLocation != null) {
-        polylineSource =
-            LatLng(sourceLocation!.latitude, sourceLocation!.longitude);
-        addMarker();
-        startLocationTracking();
-        await getNearByDriver();
-        return;
-      }
+    // Check if location permissions are granted
+    if (permissionData == LocationPermission.denied || permissionData == LocationPermission.deniedForever) {
+      // If permissions are denied, navigate to the LocationPermissionScreen
+      launchScreen(navigatorKey.currentState!.overlay!.context, LocationPermissionScreen());
+      return;
+    }
+
+    try {
+      // Fetch the current position with high accuracy
       final geoPosition = await Geolocator.getCurrentPosition(
-              timeLimit: Duration(seconds: 30),
-              desiredAccuracy: LocationAccuracy.high)
-          .catchError((error) {
-        launchScreen(navigatorKey.currentState!.overlay!.context,
-            LocationPermissionScreen());
-        // Navigator.push(context, MaterialPageRoute(builder: (_) => LocationPermissionScreen()));
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 30),
+      ).catchError((error) async {
+        // Handle errors when fetching the current position
+        log("Error fetching current position: $error");
+        var res = await launchScreen(navigatorKey.currentState!.overlay!.context, LocationPermissionScreen());
+        return res;
       });
+
+      // Update the source location with the fetched coordinates
       sourceLocation = LatLng(geoPosition.latitude, geoPosition.longitude);
-      List<Placemark>? placemarks = await placemarkFromCoordinates(
-          geoPosition.latitude, geoPosition.longitude);
+      polylineSource = sourceLocation!;
+
+      // Fetch placemarks (address details) for the current coordinates
+      final placemarks = await placemarkFromCoordinates(geoPosition.latitude, geoPosition.longitude);
+
+      if (placemarks.isNotEmpty) {
+        final place = placemarks[0];
+        // Build the source location title using place details
+        sourceLocationTitle = "${place.name ?? place.subThoroughfare}, ${place.subLocality}, ${place.locality}, ${place.administrativeArea} ${place.postalCode}, ${place.country}";
+        sourceLocationController.text = sourceLocationTitle;
+
+        // Set the country in shared preferences
+        sharedPref.setString(COUNTRY, place.isoCountryCode ?? defaultCountry);
+      }
+
+      // Add a marker for the source location
+      addMarker();
+
+      // Start tracking the user's location
+      await startLocationTracking();
+
+      // Fetch nearby drivers
       await getNearByDriver();
 
-      //set Country
-      sharedPref.setString(COUNTRY,
-          placemarks[0].isoCountryCode.validate(value: defaultCountry));
-
-      Placemark place = placemarks[0];
-      if (place != null) {
-        sourceLocationTitle =
-            "${place.name != null ? place.name : place.subThoroughfare}, ${place.subLocality}, ${place.locality}, ${place.administrativeArea} ${place.postalCode}, ${place.country}";
-        polylineSource = LatLng(geoPosition.latitude, geoPosition.longitude);
-        sourceLocationController.text=sourceLocationTitle;
-      }
-
-
-      addMarker();
-      startLocationTracking();
-
+      // Update the UI
       setState(() {});
-    } else {
-      launchScreen(navigatorKey.currentState!.overlay!.context,
-          LocationPermissionScreen());
-      // Navigator.push(context, MaterialPageRoute(builder: (_) => LocationPermissionScreen()));
+    } catch (error) {
+      // Handle any unexpected errors
+      log("Error in getCurrentUserLocation: $error");
+      launchScreen(navigatorKey.currentState!.overlay!.context, LocationPermissionScreen());
     }
   }
 
@@ -204,18 +212,13 @@ class DashBoardScreenState extends State<DashBoardScreen> {
       // print("Line126:::${value.onRideRequest.}");
       if (servicesListData != null) {
         print("Line126");
-        if (servicesListData!.status != COMPLETED &&
-            servicesListData!.status != CANCELED) {
+        if (servicesListData!.status != COMPLETED && servicesListData!.status != CANCELED) {
           print("Line128");
           launchScreen(
             getContext,
             NewEstimateRideListWidget(
-              sourceLatLog: LatLng(
-                  double.parse(servicesListData!.startLatitude!),
-                  double.parse(servicesListData!.startLongitude!)),
-              destinationLatLog: LatLng(
-                  double.parse(servicesListData!.endLatitude!),
-                  double.parse(servicesListData!.endLongitude!)),
+              sourceLatLog: LatLng(double.parse(servicesListData!.startLatitude!), double.parse(servicesListData!.startLongitude!)),
+              destinationLatLog: LatLng(double.parse(servicesListData!.endLatitude!), double.parse(servicesListData!.endLongitude!)),
               sourceTitle: servicesListData!.startAddress!,
               destinationTitle: servicesListData!.endAddress!,
               isCurrentRequest: true,
@@ -224,27 +227,17 @@ class DashBoardScreenState extends State<DashBoardScreen> {
             ),
             pageRouteAnimation: PageRouteAnimation.SlideBottomTop,
           );
-        } else if (servicesListData!.status == COMPLETED &&
-            servicesListData!.isRiderRated == 0) {
+        } else if (servicesListData!.status == COMPLETED && servicesListData!.isRiderRated == 0) {
           Future.delayed(
             Duration(seconds: 1),
             () {
-              launchScreen(
-                  getContext,
-                  ReviewScreen(
-                      rideRequest: servicesListData!, driverData: value.driver),
-                  pageRouteAnimation: PageRouteAnimation.SlideBottomTop,
-                  isNewTask: true);
+              launchScreen(getContext, ReviewScreen(rideRequest: servicesListData!, driverData: value.driver), pageRouteAnimation: PageRouteAnimation.SlideBottomTop, isNewTask: true);
             },
           );
         }
-      } else if (value.payment != null &&
-          value.payment!.paymentStatus != "paid") {
+      } else if (value.payment != null && value.payment!.paymentStatus != "paid") {
         print("Line151");
-        launchScreen(getContext,
-            RidePaymentDetailScreen(rideId: value.payment!.rideRequestId),
-            pageRouteAnimation: PageRouteAnimation.SlideBottomTop,
-            isNewTask: true);
+        launchScreen(getContext, RidePaymentDetailScreen(rideId: value.payment!.rideRequestId), pageRouteAnimation: PageRouteAnimation.SlideBottomTop, isNewTask: true);
         // Future.delayed(Duration(seconds: 1),() {
         //
         // },);
@@ -252,17 +245,15 @@ class DashBoardScreenState extends State<DashBoardScreen> {
       print("Line157");
     }).catchError((error) {
       print("Line159");
-      throw error;
       log(error.toString());
+      throw error;
     });
   }
 
   Future<void> locationPermission() async {
-    serviceStatusStream =
-        Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
+    serviceStatusStream = Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
       if (status == ServiceStatus.disabled) {
-        launchScreen(navigatorKey.currentState!.overlay!.context,
-            LocationPermissionScreen());
+        launchScreen(navigatorKey.currentState!.overlay!.context, LocationPermissionScreen());
       } else if (status == ServiceStatus.enabled) {
         getCurrentUserLocation();
         if (locationScreenKey.currentContext != null) {
@@ -289,36 +280,100 @@ class DashBoardScreenState extends State<DashBoardScreen> {
   }
 
   Future<void> startLocationTracking() async {
-    Map req = {
-      "latitude": sourceLocation!.latitude.toString(),
-      "longitude": sourceLocation!.longitude.toString(),
-    };
-    await updateStatus(req).then((value) {}).catchError((error) {
-      log(error);
-    });
+    try {
+      final req = {
+        "latitude": sourceLocation!.latitude.toString(),
+        "longitude": sourceLocation!.longitude.toString(),
+      };
+      await updateStatus(req);
+    } catch (error) {
+      log("Error in startLocationTracking: $error");
+    }
   }
 
   Future<void> getNearByDriver() async {
-    await getNearByDriverList(latLng: sourceLocation).then((value) async {
-      value.data!.forEach((element) {
-        markers.add(
-          Marker(
-            markerId: MarkerId('Driver${element.id}'),
-            position: LatLng(double.parse(element.latitude!.toString()),
-                double.parse(element.longitude!.toString())),
-            infoWindow: InfoWindow(
-                title: '${element.firstName} ${element.lastName}', snippet: ''),
-            icon: driverIcon,
-          ),
-        );
+    try {
+      await getNearByDriverList(latLng: sourceLocation).then((value) {
+        value.data!.forEach((element) {
+          markers.add(
+            Marker(
+              markerId: MarkerId('Driver${element.id}'),
+              position: LatLng(double.parse(element.latitude!), double.parse(element.longitude!)),
+              infoWindow: InfoWindow(title: '${element.firstName} ${element.lastName}'),
+              icon: driverIcon,
+            ),
+          );
+        });
+        setState(() {});
       });
-      setState(() {});
-    });
+    } catch (error) {
+      log("Error in getNearByDriver: $error");
+    }
   }
 
   @override
   void setState(fn) {
     if (mounted) super.setState(fn);
+  }
+
+  List<String> selectedFavorites = [];
+
+  Widget buildFavoriteIcon(Prediction mData) {
+    // Check if the location is already favorited
+    bool isFavorite = locationsController.locationsList.any((location) => location.favouriteLocationName == mData.description);
+
+    return IconButton(
+      onPressed: () async {
+        if (isFavorite) {
+          // If already favorited, remove it (optional, depending on your requirements)
+          // You can implement a removeFavorite API call here if needed.
+        } else {
+          // Call the API to add the location to favor
+          print('added');
+          await searchAddressRequestPlaceId(placeId: mData.placeId).then((value) async {
+            var data = value.result!.geometry;
+            locationsController.addFavouriteLocation(
+              userId: storage.read('userId'),
+              favouriteLocationName: mData.description!,
+              longitude: data!.location!.lat!,
+              latitude: data.location!.lng!,
+              timeZone: 'Asia/Dhaka',
+              status: true,
+            );
+          });
+
+          // Refresh the UI after the API call
+          setState(() {});
+        }
+      },
+      icon: Icon(
+        isFavorite ? Icons.favorite : Icons.favorite_border,
+        color: isFavorite ? Colors.red : Colors.black,
+      ),
+    );
+  }
+
+  List<Prediction> combinedList = [];
+
+  void onSearchTextChanged(String val) async {
+    if (val.isNotEmpty) {
+      if (val.length < 3) {
+        combinedList = locationsController.locationsList.map((location) => Prediction(description: location.favouriteLocationName)).toList();
+        listAddress.clear();
+        setState(() {});
+      } else {
+        await searchAddressRequest(search: val).then((value) {
+          listAddress = value.predictions!;
+          combinedList = locationsController.locationsList.map((location) => Prediction(description: location.favouriteLocationName)).toList() + listAddress;
+          setState(() {});
+        }).catchError((error) {
+          log(error);
+        });
+      }
+    } else {
+      listAddress.clear();
+      setState(() {});
+    }
   }
 
   @override
@@ -327,15 +382,13 @@ class DashBoardScreenState extends State<DashBoardScreen> {
       setState(() {});
     });
     print("titiiiiiilleee" + sourceLocationTitle);
+    print('>>>>>>>>>>>>>>>> ${storage.read('token')}');
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        systemOverlayStyle: SystemUiOverlayStyle(
-            statusBarIconBrightness: Brightness.light,
-            statusBarColor: Colors.black38,
-            statusBarBrightness: Brightness.dark),
+        systemOverlayStyle: SystemUiOverlayStyle(statusBarIconBrightness: Brightness.light, statusBarColor: Colors.black38, statusBarBrightness: Brightness.dark),
         toolbarHeight: 0,
         // leading: BackButton(color: context.iconColor),
         // title: Text(language.signUp, style: boldTextStyle()),
@@ -345,8 +398,7 @@ class DashBoardScreenState extends State<DashBoardScreen> {
       drawer: DrawerComponent(),
       body: Stack(
         children: [
-          if (sharedPref.getDouble(LATITUDE) != null &&
-              sharedPref.getDouble(LONGITUDE) != null)
+          if (sharedPref.getDouble(LATITUDE) != null && sharedPref.getDouble(LONGITUDE) != null)
             GoogleMap(
               padding: EdgeInsets.only(top: context.statusBarHeight + 4 + 24),
               compassEnabled: true,
@@ -358,9 +410,7 @@ class DashBoardScreenState extends State<DashBoardScreen> {
               markers: markers.map((e) => e).toSet(),
               polylines: _polyLines,
               initialCameraPosition: CameraPosition(
-                target: sourceLocation ??
-                    LatLng(sharedPref.getDouble(LATITUDE)!,
-                        sharedPref.getDouble(LONGITUDE)!),
+                target: sourceLocation ?? LatLng(sharedPref.getDouble(LATITUDE)!, sharedPref.getDouble(LONGITUDE)!),
                 zoom: cameraZoom,
                 tilt: cameraTilt,
                 bearing: cameraBearing,
@@ -376,9 +426,7 @@ class DashBoardScreenState extends State<DashBoardScreen> {
             visible: false,
             child: SlidingUpPanel(
               padding: EdgeInsets.all(16),
-              borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(defaultRadius),
-                  topRight: Radius.circular(defaultRadius)),
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(defaultRadius), topRight: Radius.circular(defaultRadius)),
               backdropTapClosesPanel: true,
               minHeight: 140,
               maxHeight: 140,
@@ -391,13 +439,10 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                       margin: EdgeInsets.only(bottom: 12),
                       height: 5,
                       width: 70,
-                      decoration: BoxDecoration(
-                          color: primaryColor,
-                          borderRadius: BorderRadius.circular(defaultRadius)),
+                      decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(defaultRadius)),
                     ),
                   ),
-                  Text(language.whatWouldYouLikeToGo.capitalizeFirstLetter(),
-                      style: primaryTextStyle()),
+                  Text(language.whatWouldYouLikeToGo.capitalizeFirstLetter(), style: primaryTextStyle()),
                   SizedBox(height: 12),
                   AppTextField(
                     autoFocus: false,
@@ -406,14 +451,11 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                       showModalBottomSheet(
                         isScrollControlled: true,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(defaultRadius),
-                              topRight: Radius.circular(defaultRadius)),
+                          borderRadius: BorderRadius.only(topLeft: Radius.circular(defaultRadius), topRight: Radius.circular(defaultRadius)),
                         ),
                         context: context,
                         builder: (_) {
-                          return SearchLocationComponent(
-                              title: sourceLocationTitle);
+                          return SearchLocationComponent(title: sourceLocationTitle);
                         },
                       );
                     },
@@ -424,21 +466,11 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                       prefixIcon: Icon(Feather.search),
                       filled: false,
                       isDense: true,
-                      focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(defaultRadius),
-                          borderSide: BorderSide(color: dividerColor)),
-                      disabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(defaultRadius),
-                          borderSide: BorderSide(color: dividerColor)),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(defaultRadius),
-                          borderSide: BorderSide(color: Colors.black)),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(defaultRadius),
-                          borderSide: BorderSide(color: dividerColor)),
-                      errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(defaultRadius),
-                          borderSide: BorderSide(color: Colors.red)),
+                      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(defaultRadius), borderSide: BorderSide(color: dividerColor)),
+                      disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(defaultRadius), borderSide: BorderSide(color: dividerColor)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(defaultRadius), borderSide: BorderSide(color: Colors.black)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(defaultRadius), borderSide: BorderSide(color: dividerColor)),
+                      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(defaultRadius), borderSide: BorderSide(color: Colors.red)),
                       alignLabelWithHint: true,
                       hintText: language.enterYourDestination,
                     ),
@@ -472,8 +504,7 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.2), spreadRadius: 1),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), spreadRadius: 1),
                   ],
                   borderRadius: BorderRadius.circular(defaultRadius),
                 ),
@@ -484,16 +515,14 @@ class DashBoardScreenState extends State<DashBoardScreen> {
             ),
             inkWellWidget(
               onTap: () {
-                launchScreen(context, NotificationScreen(),
-                    pageRouteAnimation: PageRouteAnimation.Slide);
+                launchScreen(context, NotificationScreen(), pageRouteAnimation: PageRouteAnimation.Slide);
               },
               child: Container(
                 padding: EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.2), spreadRadius: 1),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), spreadRadius: 1),
                   ],
                   borderRadius: BorderRadius.circular(defaultRadius),
                 ),
@@ -524,10 +553,7 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                             margin: EdgeInsets.only(bottom: 16),
                             height: 5,
                             width: 70,
-                            decoration: BoxDecoration(
-                                color: primaryColor,
-                                borderRadius:
-                                    BorderRadius.circular(defaultRadius)),
+                            decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(defaultRadius)),
                           ),
                         ),
                       ),
@@ -535,9 +561,7 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                       Container(
                         padding: EdgeInsets.only(bottom: 16),
                         width: MediaQuery.of(context).size.width,
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(defaultRadius)),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(defaultRadius)),
                         child: Padding(
                           padding: EdgeInsets.all(12),
                           child: Column(
@@ -550,50 +574,22 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                                   SizedBox(width: 4),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        if (isPickup == true)
-                                          Text(language.lblWhereAreYou,
-                                              style: secondaryTextStyle()),
+                                        if (isPickup == true) Text(language.lblWhereAreYou, style: secondaryTextStyle()),
                                         Row(
                                           children: [
                                             Expanded(
                                               child: TextFormField(
-                                                controller:
-                                                    sourceLocationController,
+                                                controller: sourceLocationController,
                                                 focusNode: sourceFocus,
-                                                decoration:
-                                                    searchInputDecoration(
-                                                        hint: language
-                                                            .currentLocation),
+                                                decoration: searchInputDecoration(hint: language.currentLocation),
                                                 onTap: () {
                                                   isPickup = false;
                                                   setState(() {});
                                                 },
                                                 onChanged: (val) {
-                                                  if (val.isNotEmpty) {
-                                                    isPickup = true;
-                                                    if (val.length < 3) {
-                                                      isDone = false;
-                                                      listAddress.clear();
-                                                      setState(() {});
-                                                    } else {
-                                                      searchAddressRequest(
-                                                              search: val)
-                                                          .then((value) {
-                                                        isDone = true;
-                                                        listAddress =
-                                                            value.predictions!;
-                                                        setState(() {});
-                                                      }).catchError((error) {
-                                                        log(error);
-                                                      });
-                                                    }
-                                                  } else {
-                                                    isPickup = false;
-                                                    setState(() {});
-                                                  }
+                                                  onSearchTextChanged(val);
                                                 },
                                               ),
                                             ),
@@ -633,48 +629,23 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                                   SizedBox(width: 4),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        if (isDrop == true)
-                                          Text(language.lblDropOff,
-                                              style: secondaryTextStyle()),
+                                        if (isDrop == true) Text(language.lblDropOff, style: secondaryTextStyle()),
                                         Row(
                                           children: [
                                             Expanded(
                                               child: TextFormField(
-                                                controller:
-                                                    destinationLocationController,
+                                                controller: destinationLocationController,
                                                 focusNode: desFocus,
                                                 autofocus: true,
-                                                decoration: searchInputDecoration(
-                                                    hint: language
-                                                        .destinationLocation),
+                                                decoration: searchInputDecoration(hint: language.destinationLocation),
                                                 onTap: () {
                                                   isDrop = false;
                                                   setState(() {});
                                                 },
                                                 onChanged: (val) {
-                                                  if (val.isNotEmpty) {
-                                                    isDrop = true;
-                                                    if (val.length < 3) {
-                                                      listAddress.clear();
-                                                      setState(() {});
-                                                    } else {
-                                                      searchAddressRequest(
-                                                              search: val)
-                                                          .then((value) {
-                                                        listAddress =
-                                                            value.predictions!;
-                                                        setState(() {});
-                                                      }).catchError((error) {
-                                                        log(error);
-                                                      });
-                                                    }
-                                                  } else {
-                                                    isDrop = false;
-                                                    setState(() {});
-                                                  }
+                                                  onSearchTextChanged(val);
                                                 },
                                               ),
                                             ),
@@ -682,113 +653,42 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                                                 onTap: () async {
                                                   if (sourceFocus.hasFocus) {
                                                     isDone = true;
-                                                    PickResult selectedPlace =
-                                                        await launchScreen(
-                                                            context,
-                                                            GoogleMapScreen(
-                                                                isDestination:
-                                                                    false),
-                                                            pageRouteAnimation:
-                                                                PageRouteAnimation
-                                                                    .SlideBottomTop);
+                                                    PickResult selectedPlace = await launchScreen(context, GoogleMapScreen(isDestination: false), pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
                                                     log(selectedPlace);
-                                                    mLocation = selectedPlace
-                                                        .formattedAddress!;
-                                                    sourceLocationController
-                                                            .text =
-                                                        selectedPlace
-                                                            .formattedAddress!;
-                                                    polylineSource = LatLng(
-                                                        selectedPlace.geometry!
-                                                            .location.lat,
-                                                        selectedPlace.geometry!
-                                                            .location.lng);
+                                                    mLocation = selectedPlace.formattedAddress!;
+                                                    sourceLocationController.text = selectedPlace.formattedAddress!;
+                                                    polylineSource = LatLng(selectedPlace.geometry!.location.lat, selectedPlace.geometry!.location.lng);
 
-                                                    if (sourceLocationController
-                                                            .text.isNotEmpty &&
-                                                        destinationLocationController
-                                                            .text.isNotEmpty) {
+                                                    if (sourceLocationController.text.isNotEmpty && destinationLocationController.text.isNotEmpty) {
                                                       launchScreen(
                                                           context,
                                                           NewEstimateRideListWidget(
-                                                              sourceLatLog:
-                                                                  polylineSource,
-                                                              destinationLatLog:
-                                                                  polylineDestination,
-                                                              sourceTitle:
-                                                                  sourceLocationController
-                                                                      .text,
-                                                              destinationTitle:
-                                                                  destinationLocationController
-                                                                      .text),
-                                                          pageRouteAnimation:
-                                                              PageRouteAnimation
-                                                                  .SlideBottomTop);
+                                                              sourceLatLog: polylineSource, destinationLatLog: polylineDestination, sourceTitle: sourceLocationController.text, destinationTitle: destinationLocationController.text),
+                                                          pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
 
-                                                      sourceLocationController
-                                                          .clear();
-                                                      destinationLocationController
-                                                          .clear();
+                                                      sourceLocationController.clear();
+                                                      destinationLocationController.clear();
                                                     } else {
                                                       desFocus.nextFocus();
                                                     }
-                                                  } else if (desFocus
-                                                      .hasFocus) {
-                                                    PickResult selectedPlace =
-                                                        await launchScreen(
-                                                            context,
-                                                            GoogleMapScreen(
-                                                                isDestination:
-                                                                    true),
-                                                            pageRouteAnimation:
-                                                                PageRouteAnimation
-                                                                    .SlideBottomTop);
+                                                  } else if (desFocus.hasFocus) {
+                                                    PickResult selectedPlace = await launchScreen(context, GoogleMapScreen(isDestination: true), pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
 
-                                                    destinationLocationController
-                                                            .text =
-                                                        selectedPlace
-                                                            .formattedAddress!;
-                                                    polylineDestination =
-                                                        LatLng(
-                                                            selectedPlace
-                                                                .geometry!
-                                                                .location
-                                                                .lat,
-                                                            selectedPlace
-                                                                .geometry!
-                                                                .location
-                                                                .lng);
+                                                    destinationLocationController.text = selectedPlace.formattedAddress!;
+                                                    polylineDestination = LatLng(selectedPlace.geometry!.location.lat, selectedPlace.geometry!.location.lng);
 
-                                                    if (sourceLocationController
-                                                            .text.isNotEmpty &&
-                                                        destinationLocationController
-                                                            .text.isNotEmpty) {
-                                                      log(sourceLocationController
-                                                          .text);
-                                                      log(destinationLocationController
-                                                          .text);
+                                                    if (sourceLocationController.text.isNotEmpty && destinationLocationController.text.isNotEmpty) {
+                                                      log(sourceLocationController.text);
+                                                      log(destinationLocationController.text);
 
                                                       launchScreen(
                                                           context,
                                                           NewEstimateRideListWidget(
-                                                              sourceLatLog:
-                                                                  polylineSource,
-                                                              destinationLatLog:
-                                                                  polylineDestination,
-                                                              sourceTitle:
-                                                                  sourceLocationController
-                                                                      .text,
-                                                              destinationTitle:
-                                                                  destinationLocationController
-                                                                      .text),
-                                                          pageRouteAnimation:
-                                                              PageRouteAnimation
-                                                                  .SlideBottomTop);
+                                                              sourceLatLog: polylineSource, destinationLatLog: polylineDestination, sourceTitle: sourceLocationController.text, destinationTitle: destinationLocationController.text),
+                                                          pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
 
-                                                      sourceLocationController
-                                                          .clear();
-                                                      destinationLocationController
-                                                          .clear();
+                                                      sourceLocationController.clear();
+                                                      destinationLocationController.clear();
                                                     } else {
                                                       sourceFocus.nextFocus();
                                                     }
@@ -821,85 +721,43 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                               controller: ScrollController(),
                               padding: EdgeInsets.zero,
                               shrinkWrap: true,
-                              itemCount: listAddress.length,
+                              itemCount: combinedList.length,
                               itemBuilder: (context, index) {
-                                Prediction mData = listAddress[index];
+                                Prediction mData = combinedList[index];
                                 return Container(
                                   color: Colors.white,
                                   child: ListTile(
                                     contentPadding: EdgeInsets.zero,
-                                    leading: Icon(Icons.location_on_outlined,
-                                        color: primaryColor),
+                                    leading: Icon(Icons.location_on_outlined, color: primaryColor),
                                     minLeadingWidth: 16,
-                                    title: Text(mData.description ?? "",
-                                        style: primaryTextStyle()),
+                                    title: Text(mData.description ?? "", style: primaryTextStyle()),
+                                    trailing: buildFavoriteIcon(mData),
                                     onTap: () async {
-                                      await searchAddressRequestPlaceId(
-                                              placeId: mData.placeId)
-                                          .then((value) async {
+                                      print(">>>>>>>idd>>>>>>${mData.placeId}");
+                                      await searchAddressRequestPlaceId(placeId: mData.placeId).then((value) async {
                                         var data = value.result!.geometry;
                                         if (sourceFocus.hasFocus) {
                                           isDone = true;
                                           mLocation = mData.description!;
-                                          sourceLocationController.text =
-                                              mData.description!;
-                                          polylineSource = LatLng(
-                                              data!.location!.lat!,
-                                              data.location!.lng!);
+                                          sourceLocationController.text = mData.description!;
+                                          polylineSource = LatLng(data!.location!.lat!, data.location!.lng!);
 
-                                          if (!sourceLocationController
-                                                  .text.isEmptyOrNull &&
-                                              !destinationLocationController
-                                                  .text.isEmptyOrNull) {
-                                            launchScreen(
-                                                context,
-                                                NewEstimateRideListWidget(
-                                                    sourceLatLog:
-                                                        polylineSource,
-                                                    destinationLatLog:
-                                                        polylineDestination,
-                                                    sourceTitle:
-                                                        sourceLocationController
-                                                            .text,
-                                                    destinationTitle:
-                                                        destinationLocationController
-                                                            .text),
-                                                pageRouteAnimation:
-                                                    PageRouteAnimation
-                                                        .SlideBottomTop);
+                                          if (!sourceLocationController.text.isEmptyOrNull && !destinationLocationController.text.isEmptyOrNull) {
+                                            launchScreen(context,
+                                                NewEstimateRideListWidget(sourceLatLog: polylineSource, destinationLatLog: polylineDestination, sourceTitle: sourceLocationController.text, destinationTitle: destinationLocationController.text),
+                                                pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
                                             sourceLocationController.clear();
-                                            destinationLocationController
-                                                .clear();
+                                            destinationLocationController.clear();
                                           }
                                         } else if (desFocus.hasFocus) {
-                                          destinationLocationController.text =
-                                              mData.description!;
-                                          polylineDestination = LatLng(
-                                              data!.location!.lat!,
-                                              data.location!.lng!);
-                                          if (!sourceLocationController
-                                                  .text.isEmptyOrNull &&
-                                              !destinationLocationController
-                                                  .text.isEmptyOrNull) {
-                                            launchScreen(
-                                                context,
-                                                NewEstimateRideListWidget(
-                                                    sourceLatLog:
-                                                        polylineSource,
-                                                    destinationLatLog:
-                                                        polylineDestination,
-                                                    sourceTitle:
-                                                        sourceLocationController
-                                                            .text,
-                                                    destinationTitle:
-                                                        destinationLocationController
-                                                            .text),
-                                                pageRouteAnimation:
-                                                    PageRouteAnimation
-                                                        .SlideBottomTop);
+                                          destinationLocationController.text = mData.description!;
+                                          polylineDestination = LatLng(data!.location!.lat!, data.location!.lng!);
+                                          if (!sourceLocationController.text.isEmptyOrNull && !destinationLocationController.text.isEmptyOrNull) {
+                                            launchScreen(context,
+                                                NewEstimateRideListWidget(sourceLatLog: polylineSource, destinationLatLog: polylineDestination, sourceTitle: sourceLocationController.text, destinationTitle: destinationLocationController.text),
+                                                pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
                                             sourceLocationController.clear();
-                                            destinationLocationController
-                                                .clear();
+                                            destinationLocationController.clear();
                                           }
                                         }
                                         listAddress.clear();
@@ -923,33 +781,15 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                           onTap: () async {
                             if (sourceFocus.hasFocus) {
                               isDone = true;
-                              PickResult selectedPlace = await launchScreen(
-                                  context,
-                                  GoogleMapScreen(isDestination: false),
-                                  pageRouteAnimation:
-                                      PageRouteAnimation.SlideBottomTop);
+                              PickResult selectedPlace = await launchScreen(context, GoogleMapScreen(isDestination: false), pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
                               log(selectedPlace);
                               mLocation = selectedPlace.formattedAddress!;
-                              sourceLocationController.text =
-                                  selectedPlace.formattedAddress!;
-                              polylineSource = LatLng(
-                                  selectedPlace.geometry!.location.lat,
-                                  selectedPlace.geometry!.location.lng);
+                              sourceLocationController.text = selectedPlace.formattedAddress!;
+                              polylineSource = LatLng(selectedPlace.geometry!.location.lat, selectedPlace.geometry!.location.lng);
 
-                              if (sourceLocationController.text.isNotEmpty &&
-                                  destinationLocationController
-                                      .text.isNotEmpty) {
-                                launchScreen(
-                                    context,
-                                    NewEstimateRideListWidget(
-                                        sourceLatLog: polylineSource,
-                                        destinationLatLog: polylineDestination,
-                                        sourceTitle:
-                                            sourceLocationController.text,
-                                        destinationTitle:
-                                            destinationLocationController.text),
-                                    pageRouteAnimation:
-                                        PageRouteAnimation.SlideBottomTop);
+                              if (sourceLocationController.text.isNotEmpty && destinationLocationController.text.isNotEmpty) {
+                                launchScreen(context, NewEstimateRideListWidget(sourceLatLog: polylineSource, destinationLatLog: polylineDestination, sourceTitle: sourceLocationController.text, destinationTitle: destinationLocationController.text),
+                                    pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
 
                                 sourceLocationController.clear();
                                 destinationLocationController.clear();
@@ -957,34 +797,17 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                                 desFocus.nextFocus();
                               }
                             } else if (desFocus.hasFocus) {
-                              PickResult selectedPlace = await launchScreen(
-                                  context, GoogleMapScreen(isDestination: true),
-                                  pageRouteAnimation:
-                                      PageRouteAnimation.SlideBottomTop);
+                              PickResult selectedPlace = await launchScreen(context, GoogleMapScreen(isDestination: true), pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
 
-                              destinationLocationController.text =
-                                  selectedPlace.formattedAddress!;
-                              polylineDestination = LatLng(
-                                  selectedPlace.geometry!.location.lat,
-                                  selectedPlace.geometry!.location.lng);
+                              destinationLocationController.text = selectedPlace.formattedAddress!;
+                              polylineDestination = LatLng(selectedPlace.geometry!.location.lat, selectedPlace.geometry!.location.lng);
 
-                              if (sourceLocationController.text.isNotEmpty &&
-                                  destinationLocationController
-                                      .text.isNotEmpty) {
+                              if (sourceLocationController.text.isNotEmpty && destinationLocationController.text.isNotEmpty) {
                                 log(sourceLocationController.text);
                                 log(destinationLocationController.text);
 
-                                launchScreen(
-                                    context,
-                                    NewEstimateRideListWidget(
-                                        sourceLatLog: polylineSource,
-                                        destinationLatLog: polylineDestination,
-                                        sourceTitle:
-                                            sourceLocationController.text,
-                                        destinationTitle:
-                                            destinationLocationController.text),
-                                    pageRouteAnimation:
-                                        PageRouteAnimation.SlideBottomTop);
+                                launchScreen(context, NewEstimateRideListWidget(sourceLatLog: polylineSource, destinationLatLog: polylineDestination, sourceTitle: sourceLocationController.text, destinationTitle: destinationLocationController.text),
+                                    pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
 
                                 sourceLocationController.clear();
                                 destinationLocationController.clear();
@@ -998,11 +821,9 @@ class DashBoardScreenState extends State<DashBoardScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.my_location_sharp,
-                                  color: Colors.white),
+                              Icon(Icons.my_location_sharp, color: Colors.white),
                               SizedBox(width: 16),
-                              Text(language.chooseOnMap,
-                                  style: boldTextStyle(color: Colors.white)),
+                              Text(language.chooseOnMap, style: boldTextStyle(color: Colors.white)),
                             ],
                           ),
                         ),

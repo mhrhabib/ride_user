@@ -55,6 +55,8 @@ class AuthServices {
     String? userType,
     bool isOtpLogin = false,
   }) async {
+    print(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>.$mobileNumber");
+    appStore.setLoading(true);
     try {
       createAuthUser(email, password, isOtpLogin).then((user) async {
         if (user != null) {
@@ -75,38 +77,65 @@ class AuthServices {
           userModel.updatedAt = Timestamp.now().toDate().toString();
           userModel.playerId = sharedPref.getString(PLAYER_ID).validate();
           sharedPref.setString(UID, user.uid.validate());
+          Map request = {
+            "contact_number": mobileNumber.validate().startsWith("+880") ? mobileNumber!.substring(4) : mobileNumber.validate(), // Remove the prefix
 
-          await userService.addDocumentWithCustomId(currentUser.uid, userModel.toJson()).then((value) async {
-            Map request = {
-              "email": userModel.email,
-              "password": password,
-              "player_id": sharedPref.getString(PLAYER_ID).validate(),
-              'user_type': RIDER,
-            };
-            if (isOtpLogin) {
-              appStore.setLoading(false);
-              updateProfileUid();
-              launchScreen(context, DashBoardScreen(), isNewTask: true, pageRouteAnimation: PageRouteAnimation.Slide);
-            } else {
-              await logInApi(request).then((res) async {
-                appStore.setLoading(false);
-                updateProfileUid();
-                launchScreen(context, DashBoardScreen(), isNewTask: true, pageRouteAnimation: PageRouteAnimation.Slide);
-              }).catchError((e) {
-                appStore.setLoading(false);
-                log(e.toString());
-                toast(e.toString());
-              });
-            }
+            "password": password,
+            "player_id": sharedPref.getString(PLAYER_ID).validate(),
+            'user_type': RIDER,
+          };
+
+          print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> $request");
+
+          await logInApi(request).then((res) async {
+            appStore.setLoading(false);
+            updateProfileUid();
+            launchScreen(context, DashBoardScreen(), isNewTask: true, pageRouteAnimation: PageRouteAnimation.Slide);
+          }).catchError((e) {
+            appStore.setLoading(false);
+            log(e.toString());
+            toast(e.toString());
           });
-        } else {
-          appStore.setLoading(false);
-          throw 'Something went wrong';
+
+          //   await userService.addDocumentWithCustomId(currentUser.uid, userModel.toJson()).then((value) async {
+          //     Map request = {
+          //       "contact_number": userModel.email,
+          //       "password": password,
+          //       "player_id": sharedPref.getString(PLAYER_ID).validate(),
+          //       'user_type': RIDER,
+          //     };
+
+          //     if (isOtpLogin) {
+          //       appStore.setLoading(false);
+          //       updateProfileUid();
+          //       launchScreen(context, DashBoardScreen(), isNewTask: true, pageRouteAnimation: PageRouteAnimation.Slide);
+          //     } else {
+          //       await logInApi(request).then((res) async {
+          //         appStore.setLoading(false);
+          //         updateProfileUid();
+          //         launchScreen(context, DashBoardScreen(), isNewTask: true, pageRouteAnimation: PageRouteAnimation.Slide);
+          //       }).catchError((e) {
+          //         appStore.setLoading(false);
+          //         log(e.toString());
+          //         toast(e.toString());
+          //       });
+          //     }
+          //   });
+          // } else {
+          //   appStore.setLoading(false);
+          //   throw 'Something went wrong';
+          // }
+          // });
+          // } on FirebaseException catch (error) {
+          // appStore.setLoading(false);
+          // toast(getMessageFromErrorCode(error));
+          // }
         }
       });
-    } on FirebaseException catch (error) {
+    } catch (e) {
+      print(e);
+    } finally {
       appStore.setLoading(false);
-      toast(getMessageFromErrorCode(error));
     }
   }
 
