@@ -331,9 +331,11 @@ class DashBoardScreenState extends State<DashBoardScreen> {
           // Call the API to add the location to favor
           print('added');
           await searchAddressRequestPlaceId(placeId: mData.placeId).then((value) async {
+            print(">>>>>>>>>Place id>>>>>>>>>>>> ${mData.placeId}");
             var data = value.result!.geometry;
             locationsController.addFavouriteLocation(
               userId: storage.read('userId'),
+              placeId: mData.placeId,
               favouriteLocationName: mData.description!,
               longitude: data!.location!.lat!,
               latitude: data.location!.lng!,
@@ -358,13 +360,13 @@ class DashBoardScreenState extends State<DashBoardScreen> {
   void onSearchTextChanged(String val) async {
     if (val.isNotEmpty) {
       if (val.length < 3) {
-        combinedList = locationsController.locationsList.map((location) => Prediction(description: location.favouriteLocationName)).toList();
+        combinedList = locationsController.locationsList.map((location) => Prediction(description: location.favouriteLocationName, placeId: location.placeId)).toList();
         listAddress.clear();
         setState(() {});
       } else {
         await searchAddressRequest(search: val).then((value) {
           listAddress = value.predictions!;
-          combinedList = locationsController.locationsList.map((location) => Prediction(description: location.favouriteLocationName)).toList() + listAddress;
+          combinedList = locationsController.locationsList.map((location) => Prediction(description: location.favouriteLocationName, placeId: location.placeId)).toList() + listAddress;
           setState(() {});
         }).catchError((error) {
           log(error);

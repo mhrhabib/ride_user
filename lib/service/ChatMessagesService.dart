@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart';
+import 'package:taxi_booking/model/profile_model.dart';
 import '../utils/Extensions/StringExtensions.dart';
 import '../main.dart';
 import '../model/ChatMessageModel.dart';
@@ -35,9 +36,9 @@ class ChatMessageService extends BaseService {
     // return ref!.doc(currentUserId).collection(receiverUserId).orderBy("createdAt", descending: true);
   }
 
-  Future<bool> isRideChatHistory({required String rideId}) async{
-    QuerySnapshot<Map<String, dynamic>> b= await rideChatRef.doc(rideId).collection("messages").get();
-    if(b.docs.isEmpty){
+  Future<bool> isRideChatHistory({required String rideId}) async {
+    QuerySnapshot<Map<String, dynamic>> b = await rideChatRef.doc(rideId).collection("messages").get();
+    if (b.docs.isEmpty) {
       return false;
     }
     return true;
@@ -49,7 +50,7 @@ class ChatMessageService extends BaseService {
     return doc;
   }
 
-  Future<void> addMessageToDb(DocumentReference senderDoc, ChatMessageModel data, UserModel sender, UserModel? user, {File? image}) async {
+  Future<void> addMessageToDb(DocumentReference senderDoc, ChatMessageModel data, UserModel sender, ProfileModel? user, {File? image}) async {
     String imageUrl = '';
 
     if (image != null) {
@@ -63,10 +64,10 @@ class ChatMessageService extends BaseService {
           imageUrl = value;
 
           fileList.removeWhere((element) => element.id == senderDoc.id);
-        }).catchError((e){
+        }).catchError((e) {
           log(e);
         });
-      }).catchError((e){
+      }).catchError((e) {
         log(e);
       });
     }
@@ -89,7 +90,7 @@ class ChatMessageService extends BaseService {
     if (image != null) {
       sendData.putIfAbsent('photoUrl', () => imageUrl);
     }
-   // log(sendData);
+    // log(sendData);
     data.update(sendData);
 
     log("Data $sendData");
@@ -165,7 +166,7 @@ class ChatMessageService extends BaseService {
       });
 
       return _batch.commit();
-    }).catchError((e){});
+    }).catchError((e) {});
   }
 
   Future<void> deleteChat({String? senderId, required String receiverId}) async {
@@ -200,29 +201,35 @@ class ChatMessageService extends BaseService {
     });
   }
 
-  Future<bool> exportChat({required String rideId,required String senderId,required String receiverId,bool? onlyDelete}) async {
+  Future<bool> exportChat({required String rideId, required String senderId, required String receiverId, bool? onlyDelete}) async {
     // chat export process
-    if(onlyDelete!=true){
-      try{
-        QuerySnapshot<Map<String, dynamic>> b=await ref!.doc("$receiverId").collection("$senderId").get();
-        b.docs.forEach((element) async{
-          await rideChatRef.doc(rideId).collection("messages").add(element.data());
-        },);
-      }catch(e){
+    if (onlyDelete != true) {
+      try {
+        QuerySnapshot<Map<String, dynamic>> b = await ref!.doc("$receiverId").collection("$senderId").get();
+        b.docs.forEach(
+          (element) async {
+            await rideChatRef.doc(rideId).collection("messages").add(element.data());
+          },
+        );
+      } catch (e) {
         print("Export_Chat_Failed::$e");
       }
     }
     // remove chat process
-    try{
-      QuerySnapshot<Map<String, dynamic>> a=await ref!.doc("$senderId").collection("$receiverId").get();
-      QuerySnapshot<Map<String, dynamic>> c=await ref!.doc("$receiverId").collection("$senderId").get();
-      a.docs.forEach((element1) async{
-        await element1.reference.delete();
-      },);
-      c.docs.forEach((element1) async{
-        await element1.reference.delete();
-      },);
-    }catch(e){
+    try {
+      QuerySnapshot<Map<String, dynamic>> a = await ref!.doc("$senderId").collection("$receiverId").get();
+      QuerySnapshot<Map<String, dynamic>> c = await ref!.doc("$receiverId").collection("$senderId").get();
+      a.docs.forEach(
+        (element1) async {
+          await element1.reference.delete();
+        },
+      );
+      c.docs.forEach(
+        (element1) async {
+          await element1.reference.delete();
+        },
+      );
+    } catch (e) {
       print("Remove_Chat_Failed::$e");
     }
     return true;

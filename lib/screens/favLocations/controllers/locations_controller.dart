@@ -28,6 +28,7 @@ class LocationsController extends GetxController {
   // Add a new favourite location
   Future<void> addFavouriteLocation({
     required int userId,
+    required dynamic placeId,
     required String favouriteLocationName,
     required double longitude,
     required double latitude,
@@ -38,6 +39,7 @@ class LocationsController extends GetxController {
       isLoading(true);
       var response = await LocationsRepository().addFavouriteLocation(
         userId: userId,
+        placeId: placeId,
         favouriteLocationName: favouriteLocationName,
         longitude: longitude,
         latitude: latitude,
@@ -59,6 +61,7 @@ class LocationsController extends GetxController {
   // Update a location
   Future<void> updateLocation({
     required int id,
+    required String placeId,
     required String favouriteLocationName,
     required double longitude,
     required double latitude,
@@ -74,6 +77,7 @@ class LocationsController extends GetxController {
         latitude: latitude,
         timeZone: timeZone,
         status: status,
+        placesId: placeId,
       );
 
       // If the location is updated successfully, refresh the list

@@ -2,6 +2,7 @@ import 'package:dotted_line/dotted_line.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:lottie/lottie.dart';
+import 'package:taxi_booking/model/profile_model.dart';
 import '../main.dart';
 import '../model/CurrentRequestModel.dart';
 import '../model/LoginResponse.dart';
@@ -30,7 +31,7 @@ class RideAcceptWidget extends StatefulWidget {
 }
 
 class RideAcceptWidgetState extends State<RideAcceptWidget> {
-  UserModel? userData;
+  ProfileModel? userData;
 
   @override
   void initState() {
@@ -43,7 +44,7 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
     await getUserDetail(userId: widget.rideRequest!.driverId).then((value) {
       sharedPref.remove(IS_TIME);
       appStore.setLoading(false);
-      userData = value.data;
+      userData = value;
       setState(() {});
     }).catchError((error) {
       appStore.setLoading(false);
@@ -67,11 +68,11 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
 
       toast(value.message);
 
-      chatMessageService.exportChat(rideId: "", senderId: sharedPref.getString(UID).validate(), receiverId: userData!.uid.validate(),onlyDelete:true);
+      chatMessageService.exportChat(rideId: "", senderId: sharedPref.getString(UID).validate(), receiverId: userData!.data!.uid.validate(), onlyDelete: true);
     }).catchError((error) {
-      try{
-        chatMessageService.exportChat(rideId: "", senderId: sharedPref.getString(UID).validate(), receiverId: userData!.uid.validate(),onlyDelete:true);
-      }catch(e){}
+      try {
+        chatMessageService.exportChat(rideId: "", senderId: sharedPref.getString(UID).validate(), receiverId: userData!.data!.uid.validate(), onlyDelete: true);
+      } catch (e) {}
       log(error.toString());
     });
   }
@@ -120,7 +121,7 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
                 ),
               ),
               Visibility(
-                visible:widget.rideRequest!.status!=IN_PROGRESS && widget.rideRequest!.status!=COMPLETED,
+                visible: widget.rideRequest!.status != IN_PROGRESS && widget.rideRequest!.status != COMPLETED,
                 child: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(border: Border.all(color: dividerColor), borderRadius: radius(defaultRadius)),
@@ -161,20 +162,20 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
                     },
                   );
                 },
-                child:chatCallWidget(Icons.sos),
+                child: chatCallWidget(Icons.sos),
               ),
               SizedBox(width: 8),
               Visibility(
-                visible: userData!=null,
+                visible: userData != null,
                 child: inkWellWidget(
-                  onTap: () async{
-                    if(userData==null || (userData!=null && userData!.uid==null)){
+                  onTap: () async {
+                    if (userData == null || (userData != null && userData!.data!.uid == null)) {
                       init();
                       return;
                     }
-                    launchScreen(context, ChatScreen(userData: userData,ride_id:widget.rideRequest!.id!), pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
+                    launchScreen(context, ChatScreen(userData: userData, ride_id: widget.rideRequest!.id!), pageRouteAnimation: PageRouteAnimation.SlideBottomTop);
                   },
-                  child: chatCallWidget(Icons.chat_bubble_outline,chat: true),
+                  child: chatCallWidget(Icons.chat_bubble_outline, chat: true),
                 ),
               ),
               SizedBox(width: 8),
@@ -223,29 +224,35 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
             ],
           ),
           SizedBox(height: 16),
-          if(widget.rideRequest!.status!="in_progress" && widget.rideRequest!.status!="completed")
-          AppButtonWidget(
-            width: MediaQuery.of(context).size.width,
-              text: language.cancel,
-              textColor: primaryColor,
-              color: Colors.white,
-              shapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(defaultRadius),side: BorderSide(color: primaryColor)),
-              // color: Colors.grey,
-              // textStyle: boldTextStyle(color: Colors.white),
-              onTap: () {
-                showModalBottomSheet(context: context,isDismissible: false,isScrollControlled: true, builder: (context) {
-                  return CancelOrderDialog(onCancel: (reason) async{
-                    Navigator.pop(context);
-                    appStore.setLoading(true);
-                    // sharedPref.remove(REMAINING_TIME);
-                    // sharedPref.remove(IS_TIME);
-                    sharedPref.remove(REMAINING_TIME);
-                    sharedPref.remove(IS_TIME);
-                    await cancelRequest(reason);
-                    appStore.setLoading(false);
-                  },);});
-              }
-          ),
+          if (widget.rideRequest!.status != "in_progress" && widget.rideRequest!.status != "completed")
+            AppButtonWidget(
+                width: MediaQuery.of(context).size.width,
+                text: language.cancel,
+                textColor: primaryColor,
+                color: Colors.white,
+                shapeBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(defaultRadius), side: BorderSide(color: primaryColor)),
+                // color: Colors.grey,
+                // textStyle: boldTextStyle(color: Colors.white),
+                onTap: () {
+                  showModalBottomSheet(
+                      context: context,
+                      isDismissible: false,
+                      isScrollControlled: true,
+                      builder: (context) {
+                        return CancelOrderDialog(
+                          onCancel: (reason) async {
+                            Navigator.pop(context);
+                            appStore.setLoading(true);
+                            // sharedPref.remove(REMAINING_TIME);
+                            // sharedPref.remove(IS_TIME);
+                            sharedPref.remove(REMAINING_TIME);
+                            sharedPref.remove(IS_TIME);
+                            await cancelRequest(reason);
+                            appStore.setLoading(false);
+                          },
+                        );
+                      });
+                }),
 
           // Visibility(
           //   visible: widget.rideRequest!.status == COMPLETED,
@@ -287,8 +294,8 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
     );
   }
 
-  Widget chatCallWidget(IconData icon,{bool chat=false}) {
-    if(sharedPref.getString(UID)!=null && chat==true){
+  Widget chatCallWidget(IconData icon, {bool chat = false}) {
+    if (sharedPref.getString(UID) != null && chat == true) {
       return Stack(
         children: [
           Container(
@@ -297,20 +304,16 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
             child: Icon(icon, size: 18, color: primaryColor),
           ),
           StreamBuilder<int>(
-              stream: chatMessageService.getUnReadCount(senderId: "${sharedPref.getString(UID)}",receiverId: widget.driverData!.uid.toString()),
+              stream: chatMessageService.getUnReadCount(senderId: "${sharedPref.getString(UID)}", receiverId: widget.driverData!.uid.toString()),
               builder: (context, snapshot) {
-                if(snapshot.hasData && snapshot.data!=null && snapshot.data!>0){
-                  return Positioned(
-                      top: -2,
-                      right: 0,
-                      child:Lottie.asset(messageDetect, width: 18, height: 18, fit: BoxFit.cover));
+                if (snapshot.hasData && snapshot.data != null && snapshot.data! > 0) {
+                  return Positioned(top: -2, right: 0, child: Lottie.asset(messageDetect, width: 18, height: 18, fit: BoxFit.cover));
                 }
                 return SizedBox();
-              }
-          )
+              })
         ],
       );
-    }else{
+    } else {
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(border: Border.all(color: dividerColor), color: appStore.isDarkMode ? scaffoldColorDark : scaffoldColorLight, borderRadius: BorderRadius.circular(defaultRadius)),
@@ -328,10 +331,7 @@ class RideAcceptWidgetState extends State<RideAcceptWidget> {
           builder: (BuildContext context) {
             return Visibility(
               visible: appStore.isDarkMode,
-              child: Positioned(
-                  top: -2,
-                  right: 0,
-                  child:Lottie.asset(messageDetect, width: 18, height: 18, fit: BoxFit.cover)),
+              child: Positioned(top: -2, right: 0, child: Lottie.asset(messageDetect, width: 18, height: 18, fit: BoxFit.cover)),
             );
           },
         ),

@@ -26,6 +26,7 @@ class LocationsRepository {
   // Add a new favourite location (POST)
   Future<LocationsAddModel> addFavouriteLocation({
     required dynamic userId,
+    required dynamic placeId,
     required String favouriteLocationName,
     required double longitude,
     required double latitude,
@@ -36,6 +37,7 @@ class LocationsRepository {
       // Prepare the payload
       Map<String, dynamic> payload = {
         "user_id": userId,
+        "place_id": placeId,
         "favourite_location_name": favouriteLocationName,
         "longitude": longitude,
         "latitude": latitude,
@@ -60,6 +62,7 @@ class LocationsRepository {
   // Update a location (PUT)
   Future<dynamic> updateLocation({
     required int id,
+    required String placesId,
     required String favouriteLocationName,
     required double longitude,
     required double latitude,
@@ -74,12 +77,14 @@ class LocationsRepository {
         "latitude": latitude,
         "timeZone": timeZone,
         "status": status,
+        "place_id": placesId,
       };
 
       // Make the PUT request using BaseClient
       var response = await BaseClient.put(url: '$_baseUrl/$id', payload: payload);
 
       // Check if the response is successful
+      print(response.data['message']);
       if (response.statusCode == 200) {
         return response.data; // Return the response data
       } else {

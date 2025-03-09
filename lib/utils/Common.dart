@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:html/parser.dart';
 import 'package:intl/intl.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:taxi_booking/model/profile_model.dart';
 import '../model/LoginResponse.dart';
 import '../network/RestApis.dart';
 import '../screens/ChatScreen.dart';
@@ -422,11 +423,11 @@ oneSignalSettings() async {
     var notType = notification.notification.additionalData!['type'];
     if (notId != null) {
       if (notId.toString().contains('CHAT')) {
-        LoginResponse user = await getUserDetail(userId: int.parse(notId.toString().replaceAll("CHAT_", "")));
+        ProfileModel user = await getUserDetail(userId: int.parse(notId.toString().replaceAll("CHAT_", "")));
         launchScreen(
             getContext,
             ChatScreen(
-              userData: user.data,
+              userData: user,
               ride_id: -1,
             ),
             isNewTask: true);

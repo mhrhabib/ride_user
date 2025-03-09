@@ -166,6 +166,7 @@ class _FavLocationScreenState extends State<FavLocationScreen> {
                 // Call the controller to update the location
                 controller.updateLocation(
                   id: location.id!,
+                  placeId: location.placeId,
                   favouriteLocationName: nameController.text,
                   longitude: double.parse(lonController.text),
                   latitude: double.parse(latController.text),

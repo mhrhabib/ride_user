@@ -25,8 +25,9 @@ class FavLocationsModel {
 }
 
 class Locations {
-  int? id;
-  int? userId;
+  dynamic id;
+  dynamic userId;
+  dynamic placeId;
   String? favouriteLocationName;
   double? longitude;
   double? latitude;
@@ -35,11 +36,12 @@ class Locations {
   String? createdAt;
   String? updatedAt;
 
-  Locations({this.id, this.userId, this.favouriteLocationName, this.longitude, this.latitude, this.timeZone, this.status, this.createdAt, this.updatedAt});
+  Locations({this.id, this.userId, this.placeId, this.favouriteLocationName, this.longitude, this.latitude, this.timeZone, this.status, this.createdAt, this.updatedAt});
 
   Locations.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     userId = json['user_id'];
+    placeId = json['place_id'];
     favouriteLocationName = json['favourite_location_name'];
     longitude = json['longitude'];
     latitude = json['latitude'];
@@ -53,6 +55,7 @@ class Locations {
     final Map<String, dynamic> data = new Map<String, dynamic>();
     data['id'] = this.id;
     data['user_id'] = this.userId;
+    data['place_id'] = this.placeId;
     data['favourite_location_name'] = this.favouriteLocationName;
     data['longitude'] = this.longitude;
     data['latitude'] = this.latitude;

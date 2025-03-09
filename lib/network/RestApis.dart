@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart';
+import 'package:taxi_booking/model/profile_model.dart';
 import '../model/CouponListModel.dart';
 import '../model/CurrentRequestModel.dart';
 import '../model/EstimatePriceModel.dart';
@@ -125,9 +126,11 @@ Future sendMultiPartRequest(MultipartRequest multiPartRequest, {Function(dynamic
 
   await multiPartRequest.send().then((res) {
     // log(res.statusCode);
-    res.stream.bytesToString().then((value) {
-      onSuccess?.call(jsonDecode(value));
-    },);
+    res.stream.bytesToString().then(
+      (value) {
+        onSuccess?.call(jsonDecode(value));
+      },
+    );
     // res.stream.transform(utf8.decoder).listen((value) {
     //   // log(value);
     //   onSuccess?.call(jsonDecode(value));
@@ -138,23 +141,39 @@ Future sendMultiPartRequest(MultipartRequest multiPartRequest, {Function(dynamic
 }
 
 /// Profile Update
-Future updateProfile({String? uid, String? firstName, String? lastName, String? userEmail, String? address, String? contactNumber, String? gender, File? file}) async {
+Future updateProfile({
+  String? uid,
+  String? firstName,
+  String? lastName,
+  String? userEmail,
+  String? address,
+  String? contactNumber,
+  String? gender,
+  File? nidFront,
+  File? nidBack,
+  File? file,
+}) async {
   MultipartRequest multiPartRequest = await getMultiPartRequest('update-profile');
   multiPartRequest.fields['id'] = sharedPref.getInt(USER_ID).toString();
+  multiPartRequest.fields['user_type'] = RIDER;
   multiPartRequest.fields['username'] = sharedPref.getString(USER_NAME).validate();
   multiPartRequest.fields['email'] = userEmail ?? appStore.userEmail;
   multiPartRequest.fields['first_name'] = firstName.validate();
   multiPartRequest.fields['last_name'] = lastName.validate();
   multiPartRequest.fields['contact_number'] = contactNumber.validate();
-  multiPartRequest.fields['address'] = address.validate();
+
+  // multiPartRequest.fields['address'] = address.validate();
   multiPartRequest.fields['gender'] = gender.validate();
   multiPartRequest.fields['uid'] = uid.validate();
   multiPartRequest.fields['player_id'] = sharedPref.getString(PLAYER_ID).toString();
 
   if (file != null) multiPartRequest.files.add(await MultipartFile.fromPath('profile_image', file.path));
+  if (file != null) multiPartRequest.files.add(await MultipartFile.fromPath('nid_front', nidFront!.path));
+  if (file != null) multiPartRequest.files.add(await MultipartFile.fromPath('nid_back', nidBack!.path));
 
   await sendMultiPartRequest(multiPartRequest, onSuccess: (data) async {
     if (data != null) {
+      print(">>>.8***********************${data}");
       LoginResponse res = LoginResponse.fromJson(data);
 
       await sharedPref.setString(FIRST_NAME, res.data!.firstName.validate());
@@ -196,8 +215,8 @@ Future<ServiceModel> getServices() async {
   return ServiceModel.fromJson(await handleResponse(await buildHttpResponse('service-list', method: HttpMethod.GET)));
 }
 
-Future<LoginResponse> getUserDetail({int? userId}) async {
-  return LoginResponse.fromJson(await handleResponse(await buildHttpResponse('user-detail?id=$userId', method: HttpMethod.GET)));
+Future<ProfileModel> getUserDetail({int? userId}) async {
+  return ProfileModel.fromJson(await handleResponse(await buildHttpResponse('user-detail?id=$userId', method: HttpMethod.GET)));
 }
 
 // Future<LDBaseResponse> changeStatusApi(Map request) async {
@@ -256,7 +275,6 @@ Future<CurrentRequestModel> getCurrentRideRequest() async {
   return CurrentRequestModel.fromJson(await handleResponse(await buildHttpResponse('current-riderequest', method: HttpMethod.GET)));
 }
 
-
 Future<LDBaseResponse> rideRequestUpdate({required Map request, int? rideId}) async {
   return LDBaseResponse.fromJson(await handleResponse(await buildHttpResponse('riderequest-update/$rideId', method: HttpMethod.POST, request: request)));
 }
@@ -273,8 +291,7 @@ Future<RiderListModel> getRiderRequestList({int? page, String? status, LatLng? s
   if (sourceLatLog != null) {
     return RiderListModel.fromJson(await handleResponse(await buildHttpResponse('riderequest-list?page=$page&rider_id=$riderId', method: HttpMethod.GET)));
   } else {
-    return RiderListModel.fromJson(await handleResponse(
-        await buildHttpResponse(status != null ? 'riderequest-list?page=$page&status=$status&rider_id=$riderId' : 'riderequest-list?page=$page&rider_id=$riderId', method: HttpMethod.GET)));
+    return RiderListModel.fromJson(await handleResponse(await buildHttpResponse(status != null ? 'riderequest-list?page=$page&status=$status&rider_id=$riderId' : 'riderequest-list?page=$page&rider_id=$riderId', method: HttpMethod.GET)));
   }
 }
 
@@ -292,14 +309,12 @@ Future<NotificationListModel> getNotification({required int page}) async {
 }
 
 Future<GoogleMapSearchModel> searchAddressRequest({String? search}) async {
-  return GoogleMapSearchModel.fromJson(await handleResponse(await buildHttpResponse(
-      'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$search&key=$GOOGLE_MAP_API_KEY&components=country:${sharedPref.getString(COUNTRY).validate(value: defaultCountry)}',
-      method: HttpMethod.GET)));
+  return GoogleMapSearchModel.fromJson(await handleResponse(
+      await buildHttpResponse('https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$search&key=$GOOGLE_MAP_API_KEY&components=country:${sharedPref.getString(COUNTRY).validate(value: defaultCountry)}', method: HttpMethod.GET)));
 }
 
 Future<GooglePlaceIdModel> searchAddressRequestPlaceId({String? placeId}) async {
-  return GooglePlaceIdModel.fromJson(
-      await handleResponse(await buildHttpResponse('https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$GOOGLE_MAP_API_KEY', method: HttpMethod.GET)));
+  return GooglePlaceIdModel.fromJson(await handleResponse(await buildHttpResponse('https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$GOOGLE_MAP_API_KEY', method: HttpMethod.GET)));
 }
 
 Future<LoginResponse> updateStatus(Map request) async {
@@ -387,7 +402,7 @@ Future<LDBaseResponse> saveWithDrawRequest(Map request) async {
 }
 
 /// Update Bank Info
-Future updateBankDetail({String? bankName, String? bankCode, String? accountName, String? accountNumber,String? routing,String? iban,String? swift}) async {
+Future updateBankDetail({String? bankName, String? bankCode, String? accountName, String? accountNumber, String? routing, String? iban, String? swift}) async {
   MultipartRequest multiPartRequest = await getMultiPartRequest('update-profile');
   multiPartRequest.fields['email'] = sharedPref.getString(USER_EMAIL).validate();
   multiPartRequest.fields['contact_number'] = sharedPref.getString(CONTACT_NUMBER).validate();

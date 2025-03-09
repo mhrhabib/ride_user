@@ -31,6 +31,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   XFile? imageProfile;
+  XFile? nidFront;
+  XFile? nidBack;
   String countryCode = defaultCountryCode;
 
   TextEditingController emailController = TextEditingController();
@@ -47,6 +49,7 @@ class EditProfileScreenState extends State<EditProfileScreen> {
   FocusNode emergencyNumberFocus = FocusNode();
   FocusNode contactFocus = FocusNode();
   FocusNode addressFocus = FocusNode();
+  int isKycEnabled = 0;
 
   @override
   void initState() {
@@ -61,11 +64,13 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       usernameController.text = value.data!.username.validate();
       firstNameController.text = value.data!.firstName.validate();
       lastNameController.text = value.data!.lastName.validate();
-      addressController.text = value.data!.address.validate();
+      // addressController.text = value.data!.address.validate();
       contactNumberController.text = value.data!.contactNumber.validate();
-      if (value.data!.country_code != null) {
-        contactNumberController.text = value.data!.country_code.validate() + value.data!.contactNumber.validate();
-      }
+      // if (value.data!.contactNumber != null) {
+      //   contactNumberController.text = value.data!.country_code.validate() + value.data!.contactNumber.validate();
+      // }
+      // contactNumberController.text = value.data!.contactNumber!;
+      isKycEnabled = value.data!.isKycEnabled!;
       appStore.setUserEmail(value.data!.email.validate());
       appStore.setUserName(value.data!.username.validate());
       appStore.setFirstName(value.data!.firstName.validate());
@@ -121,6 +126,8 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       await updateProfile(
         uid: sharedPref.getString(UID).toString(),
         file: imageProfile != null ? File(imageProfile!.path.validate()) : null,
+        nidFront: nidFront != null ? File(nidFront!.path.validate()) : null,
+        nidBack: nidBack != null ? File(nidBack!.path.validate()) : null,
         contactNumber: widget.isGoogle == true ? '$countryCode${contactNumberController.text.trim()}' : contactNumberController.text.trim(),
         address: addressController.text.trim(),
         firstName: firstNameController.text.trim(),
@@ -140,6 +147,9 @@ class EditProfileScreenState extends State<EditProfileScreen> {
       });
     }
   }
+
+  String nidFrontImage = '';
+  String nidBackImage = '';
 
   @override
   void setState(fn) {
@@ -212,19 +222,19 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   if (sharedPref.getString(LOGIN_TYPE) != 'mobile' && sharedPref.getString(LOGIN_TYPE) != null) SizedBox(height: 16),
                   if (sharedPref.getString(LOGIN_TYPE) != 'mobile' && sharedPref.getString(LOGIN_TYPE) != null)
-                    AppTextField(
-                      readOnly: true,
-                      isValidationRequired: false,
-                      controller: usernameController,
-                      textFieldType: TextFieldType.USERNAME,
-                      focus: userNameFocus,
-                      nextFocus: firstnameFocus,
-                      decoration: inputDecoration(context, label: language.userName),
-                      onTap: () {
-                        toast(language.notChangeUsername);
-                      },
-                    ),
-                  SizedBox(height: 16),
+                    // AppTextField(
+                    //   readOnly: true,
+                    //   isValidationRequired: false,
+                    //   controller: usernameController,
+                    //   textFieldType: TextFieldType.USERNAME,
+                    //   focus: userNameFocus,
+                    //   nextFocus: firstnameFocus,
+                    //   decoration: inputDecoration(context, label: language.userName),
+                    //   onTap: () {
+                    //     toast(language.notChangeUsername);
+                    //   },
+                    // ),
+                    SizedBox(height: 16),
                   AppTextField(
                     controller: firstNameController,
                     textFieldType: TextFieldType.NAME,
@@ -311,146 +321,160 @@ class EditProfileScreenState extends State<EditProfileScreen> {
                           },
                         ),
                   SizedBox(height: 16),
-                  AppTextField(
-                    // controller: lastNameController,
-                    textFieldType: TextFieldType.PHONE,
-                    focus: emergencyNumberFocus,
-                    nextFocus: addressFocus,
-                    decoration: inputDecoration(context, label: language.emergencyContact),
-                    errorThisFieldRequired: language.thisFieldRequired,
-                  ),
+                  // AppTextField(
+                  //   // controller: lastNameController,
+                  //   textFieldType: TextFieldType.PHONE,
+                  //   focus: emergencyNumberFocus,
+                  //   nextFocus: addressFocus,
+                  //   decoration: inputDecoration(context, label: language.emergencyContact),
+                  //   errorThisFieldRequired: language.thisFieldRequired,
+                  // ),
                   Gap(8),
-                  Text('For transport booking must update KYC'),
+                  isKycEnabled == 0 ? Text('For transport booking must update KYC') : SizedBox.shrink(),
                   Gap(8),
 
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(8),
+                  isKycEnabled == 0
+                      ? Container(
+                          padding: EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(5),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Column(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              Stack(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(8),
-                                    height: 80,
-                                    width: 100,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey.shade300),
-                                      borderRadius: BorderRadius.circular(5),
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(8),
+                                          height: 80,
+                                          width: 100,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: Colors.grey.shade300),
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: nidFront == null
+                                              ? SizedBox.shrink()
+                                              : Image.file(
+                                                  File(nidFront!.path),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                        ),
+                                        Positioned(
+                                          top: 0,
+                                          right: 1,
+                                          child: Align(
+                                            alignment: Alignment.topRight,
+                                            child: Container(
+                                              margin: EdgeInsets.only(top: 0, right: 0),
+                                              height: 24,
+                                              width: 24,
+                                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: primaryColor),
+                                              child: InkWell(
+                                                  onTap: () {
+                                                    showDialog(
+                                                      context: context,
+                                                      builder: (_) {
+                                                        return ImageSourceDialog(
+                                                          onCamera: () async {
+                                                            Navigator.pop(context);
+                                                            nidFront = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
+                                                            setState(() {});
+                                                          },
+                                                          onGallery: () async {
+                                                            Navigator.pop(context);
+                                                            nidFront = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+                                                            setState(() {});
+                                                          },
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                  child: Icon(Icons.edit, color: Colors.white, size: 14)),
+                                            ),
+                                          ),
+                                        )
+                                      ],
                                     ),
-                                  ),
-                                  Positioned(
-                                    top: 0,
-                                    right: 1,
-                                    child: Align(
-                                      alignment: Alignment.topRight,
-                                      child: Container(
-                                        margin: EdgeInsets.only(top: 0, right: 0),
-                                        height: 24,
-                                        width: 24,
-                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: primaryColor),
-                                        child: InkWell(
-                                            onTap: () {
-                                              showDialog(
-                                                context: context,
-                                                builder: (_) {
-                                                  return ImageSourceDialog(
-                                                    onCamera: () async {
-                                                      Navigator.pop(context);
-                                                      imageProfile = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
-                                                      setState(() {});
-                                                    },
-                                                    onGallery: () async {
-                                                      Navigator.pop(context);
-                                                      imageProfile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
-                                                      setState(() {});
+                                    Text('NID Front'),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(8),
+                                          height: 80,
+                                          width: 100,
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: Colors.grey.shade300),
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: nidBack == null
+                                              ? SizedBox.shrink()
+                                              : Image.file(
+                                                  File(nidBack!.path),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                        ),
+                                        Positioned(
+                                          top: 0,
+                                          right: 1,
+                                          child: Container(
+                                            margin: EdgeInsets.only(top: 0, right: 0),
+                                            height: 24,
+                                            width: 24,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: primaryColor),
+                                            child: InkWell(
+                                                onTap: () {
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (_) {
+                                                      return ImageSourceDialog(
+                                                        onCamera: () async {
+                                                          Navigator.pop(context);
+                                                          nidBack = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
+                                                          setState(() {});
+                                                        },
+                                                        onGallery: () async {
+                                                          Navigator.pop(context);
+                                                          nidBack = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+                                                          setState(() {});
+                                                        },
+                                                      );
                                                     },
                                                   );
                                                 },
-                                              );
-                                            },
-                                            child: Icon(Icons.edit, color: Colors.white, size: 14)),
-                                      ),
+                                                child: Icon(Icons.edit, color: Colors.white, size: 14)),
+                                          ),
+                                        )
+                                      ],
                                     ),
-                                  )
-                                ],
+                                    Text('NID Back'),
+                                  ],
+                                ),
                               ),
-                              Text('NID Front'),
                             ],
                           ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Column(
-                            children: [
-                              Stack(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(8),
-                                    height: 80,
-                                    width: 100,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey.shade300),
-                                      borderRadius: BorderRadius.circular(5),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 0,
-                                    right: 1,
-                                    child: Container(
-                                      margin: EdgeInsets.only(top: 0, right: 0),
-                                      height: 24,
-                                      width: 24,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: primaryColor),
-                                      child: InkWell(
-                                          onTap: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (_) {
-                                                return ImageSourceDialog(
-                                                  onCamera: () async {
-                                                    Navigator.pop(context);
-                                                    imageProfile = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 100);
-                                                    setState(() {});
-                                                  },
-                                                  onGallery: () async {
-                                                    Navigator.pop(context);
-                                                    imageProfile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
-                                                    setState(() {});
-                                                  },
-                                                );
-                                              },
-                                            );
-                                          },
-                                          child: Icon(Icons.edit, color: Colors.white, size: 14)),
-                                    ),
-                                  )
-                                ],
-                              ),
-                              Text('NID Back'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                        )
+                      : SizedBox.shrink(),
                   // AppTextField(
                   //   controller: addressController,
                   //   focus: addressFocus,
