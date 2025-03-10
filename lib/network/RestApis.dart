@@ -168,8 +168,8 @@ Future updateProfile({
   multiPartRequest.fields['player_id'] = sharedPref.getString(PLAYER_ID).toString();
 
   if (file != null) multiPartRequest.files.add(await MultipartFile.fromPath('profile_image', file.path));
-  if (file != null) multiPartRequest.files.add(await MultipartFile.fromPath('nid_front', nidFront!.path));
-  if (file != null) multiPartRequest.files.add(await MultipartFile.fromPath('nid_back', nidBack!.path));
+  if (nidFront != null) multiPartRequest.files.add(await MultipartFile.fromPath('nid_front', nidFront!.path));
+  if (nidBack != null) multiPartRequest.files.add(await MultipartFile.fromPath('nid_back', nidBack!.path));
 
   await sendMultiPartRequest(multiPartRequest, onSuccess: (data) async {
     if (data != null) {

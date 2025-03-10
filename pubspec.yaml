@@ -14,18 +14,16 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
-  # TOAST
-  fluttertoast: ^8.2.8
-
   # IMAGE
   cached_network_image: ^3.3.1
+  flutter_native_contact_picker: ^0.0.10
 
   # BASE
   intl: ^0.19.0
   google_fonts: ^6.2.1
   html: ^0.15.4
   shared_preferences: ^2.3.2
-  flutter_widget_from_html: ^0.15.2
+  flutter_widget_from_html: ^0.16.0
 
   # UI
   sliding_up_panel: ^2.0.0+1
@@ -35,7 +33,7 @@ dependencies:
   flutter_staggered_animations: ^1.1.1
   bottom_picker: ^2.8.0
   country_code_picker: ^3.0.0
-  flutter_native_contact_picker: ^0.0.7
+  # flutter_native_contact_picker: ^0.0.7
   dotted_border: ^2.1.0
   timeline_tile: ^2.0.0
   flutter_vector_icons: ^2.0.0
@@ -56,7 +54,7 @@ dependencies:
 
   # IMAGES
   image_picker: ^1.1.2
-  file_picker: ^8.0.6
+  file_picker: ^9.0.2
 
   # CONNECTIVITY
   package_info_plus: ^8.0.2
@@ -95,7 +93,7 @@ dependencies:
   flutter_paytabs_bridge: ^2.6.17
 #  mercado_pago_mobile_checkout: ^0.2.0-dev.3
   my_fatoorah: ^3.3.0
-  paytm: ^3.0.1
+  # paytm: ^3.0.1
 
 
   # PUSH NOTIFICATION

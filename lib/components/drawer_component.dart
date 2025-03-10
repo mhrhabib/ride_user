@@ -93,13 +93,13 @@ class _DrawerComponentState extends State<DrawerComponent> {
                       Navigator.pop(context);
                       launchScreen(context, BankInfoScreen(), pageRouteAnimation: PageRouteAnimation.Slide);
                     }),
-                DrawerWidget(
-                    title: language.emergencyContacts,
-                    iconData: ic_emergency_contact,
-                    onTap: () {
-                      Navigator.pop(context);
-                      launchScreen(context, EmergencyContactScreen(), pageRouteAnimation: PageRouteAnimation.Slide);
-                    }),
+                // DrawerWidget(
+                //     title: language.emergencyContacts,
+                //     iconData: ic_emergency_contact,
+                //     onTap: () {
+                //       Navigator.pop(context);
+                //       launchScreen(context, EmergencyContactScreen(), pageRouteAnimation: PageRouteAnimation.Slide);
+                //     }),
                 DrawerWidget(
                     title: 'Favorite locations',
                     iconData: ic_history_img2,

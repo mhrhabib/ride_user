@@ -3,7 +3,7 @@ group 'co.paystack.flutterpaystack'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.9.10'
+    ext.kotlin_version = '1.9.22'
     repositories {
         mavenCentral()
         google()
@@ -16,6 +16,11 @@ buildscript {
 }
 
 rootProject.allprojects {
+     tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
     repositories {
         mavenCentral()
         google()
@@ -26,21 +31,26 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 32
+    namespace ="co.paystack.flutterpaystack"
+    compileSdkVersion 35
+
+    compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
 
-    kotlinOptions {
-        jvmTarget = '17' // Updated to match Java target
-    }
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 23
+        targetSdkVersion 34
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         versionCode 21
         versionName "3.0.10"
@@ -49,9 +59,7 @@ android {
         disable 'InvalidPackage'
     }
 }
-kotlin {
-    jvmToolchain(17) // Use JVM Toolchain for consistency
-}
+
 
 dependencies {
     implementation 'com.google.android.material:material:1.7.0'
